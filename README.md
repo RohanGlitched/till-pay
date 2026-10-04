@@ -151,18 +151,21 @@ forge test --match-contract Fork --fork-url monad_testnet    # Agora AUSD on a M
 ## Architecture
 
 ```mermaid
-flowchart LR
-    subgraph Browser
-      UI[Next.js app<br/>live banknotes] -- EIP-712 signatures --> W[Privy embedded wallet<br/>passkey or email]
-    end
-    UI -- /api/relay --> RL[Relayer<br/>simulates, then submits]
-    UI -- /api/settle --> RL
-    UI -- /api/faucet --> FA[Faucet<br/>25 AUSD, refilled from Agora]
-    RL --> FW[ERC2771Forwarder]
-    FW --> TILL[Till contract]
-    TILL <--> AUSD[(Agora AUSD)]
-    BOTS[Demo studios and freelancers<br/>cron on a server] --> RL
-    UI -- newHeads, getLogs --> MON[(Monad testnet RPC)]
+flowchart TB
+    APP["Next.js app<br/>live banknotes"]
+    WAL["Privy embedded wallet<br/>passkey or email"]
+    REL["Till relayer<br/>simulate, then submit"]
+    BOTS["Demo studios and freelancers<br/>cron on a server"]
+    FWD["ERC2771Forwarder"]
+    TILL["Till contract"]
+    AUSD[("Agora AUSD")]
+    RPC[("Monad testnet RPC")]
+    APP -->|sign EIP-712| WAL
+    APP -->|signed request| REL
+    BOTS -->|signed request| REL
+    REL --> FWD --> TILL
+    TILL <-->|permit, pay, refund| AUSD
+    APP -.->|new blocks, exact-block logs| RPC
 ```
 
 ```
