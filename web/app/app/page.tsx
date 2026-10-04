@@ -1,0 +1,229 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { isAddress, type Address } from "viem";
+import { ProfileForm } from "@/components/ProfileForm";
+import { TabRow } from "@/components/TabRow";
+import { ErrorLine, LandedLine, SignInPanel, busyLabel, useAction } from "@/components/ui";
+import { useMyTabIds, useProfile, useTabs, useUsdcBalance } from "@/lib/hooks";
+import { useLive, useChainNow } from "@/lib/live";
+import { currency, formatMoney, formatUsd, toUnits, toUsd } from "@/lib/money";
+import { relay, requestTestUsdc, sendUsdc } from "@/lib/relay";
+import { stateOf, type TabView } from "@/lib/tabs";
+import { useWallet } from "@/lib/wallet";
+import styles from "./app.module.css";
+
+export default function YourTabs() {
+  const wallet = useWallet();
+  const me = wallet.address;
+  const { ids } = useMyTabIds(me);
+  const { views, profiles, refresh, error: readError } = useTabs(ids);
+  const { balance, refresh: refreshBalance } = useUsdcBalance(me);
+  const { rates } = useLive();
+  const now = useChainNow();
+  const act = useAction();
+  const faucet = useAction();
+  const [sendOpen, setSendOpen] = useState(false);
+
+  const mine = useProfile(me);
+  const myCur = currency(mine?.currency || "USD");
+  const paying = useMemo(() => views?.filter((v) => v.tab.payer.toLowerCase() === me?.toLowerCase()) ?? [], [views, me]);
+  const paid = useMemo(() => views?.filter((v) => v.tab.payee.toLowerCase() === me?.toLowerCase()) ?? [], [views, me]);
+
+  if (!wallet.ready) return <main className={`wrap ${styles.page}`} aria-busy="true" />;
+  if (!me)
+    return (
+      <main className={`wrap ${styles.page}`}>
+        <SignInPanel title="Sign in to see your tabs">
+          <p>Your tabs are the ones you pay into as a client and the ones that pay you as a freelancer.</p>
+        </SignInPanel>
+      </main>
+    );
+
+  const usd = balance == null ? null : toUsd(balance);
+  const lowBalance = balance != null && balance < 5_000_000n;
+
+  const clock = (v: TabView, what: "clockIn" | "clockOut") =>
+    act.run(what === "clockIn" ? "Clocked in" : "Clocked out", async (sent) => {
+      const p = relay(wallet, what, [v.id]);
+      sent();
+      const r = await p;
+      refresh();
+      return r;
+    });
+
+  const actionFor = (v: TabView) => {
+    const s = stateOf(v.tab, now);
+    const iAmPayee = v.tab.payee.toLowerCase() === me.toLowerCase();
+    if (iAmPayee && s === "idle")
+      return (
+        <button className="btn small live" disabled={act.busy} onClick={() => clock(v, "clockIn")}>
+          {act.busy && act.which === "Clocked in" ? busyLabel(act.phase, "Clock in") : "Clock in"}
+        </button>
+      );
+    if (iAmPayee && s === "working")
+      return (
+        <button className="btn small" disabled={act.busy} onClick={() => clock(v, "clockOut")}>
+          {act.busy && act.which === "Clocked out" ? busyLabel(act.phase, "Clock out") : "Clock out"}
+        </button>
+      );
+    return (
+      <Link className="btn small quiet" href={`/tab/${v.id}`}>
+        Open
+      </Link>
+    );
+  };
+
+  return (
+    <main className={`wrap ${styles.page}`}>
+      <section className={styles.wallet}>
+        <div className={styles.balance}>
+          <span className={styles.label}>In your wallet</span>
+          <span className={`denom ${styles.big}`}>{usd == null ? <span className={`skeleton ${styles.skel}`} /> : formatUsd(usd)}</span>
+          {usd != null && myCur.code !== "USD" && rates && <span className="soft">about {formatMoney(usd, myCur, rates)}</span>}
+          <span className={styles.addr}>
+            {wallet.kind === "email" ? `${wallet.label}, ` : "Practice wallet, "}
+            <span className="serial">{me.slice(0, 10)}…{me.slice(-6)}</span>
+          </span>
+        </div>
+        <div className={styles.walletActions}>
+          {lowBalance && (
+            <button
+              className="btn primary"
+              disabled={faucet.busy}
+              onClick={() =>
+                faucet.run("10 test USDC arrived", async (sent) => {
+                  sent();
+                  const r = await requestTestUsdc(me);
+                  refreshBalance();
+                  return r;
+                })
+              }
+            >
+              {faucet.busy ? "Sending test USDC…" : "Get 10 test USDC"}
+            </button>
+          )}
+          <Link href="/open" className={`btn ${lowBalance ? "" : "primary"}`}>
+            Open a tab
+          </Link>
+          {!lowBalance && (
+            <button className="btn quiet" onClick={() => setSendOpen((o) => !o)} aria-expanded={sendOpen}>
+              Send to another wallet
+            </button>
+          )}
+        </div>
+        <div className={styles.walletNotes}>
+          <ErrorLine error={faucet.error} />
+          <LandedLine landed={faucet.landed} />
+        </div>
+        {sendOpen && <SendForm max={balance ?? 0n} onDone={refreshBalance} />}
+      </section>
+
+      <section className={styles.profile}>
+        <ProfileForm me={me} current={mine} onSaved={refresh} />
+      </section>
+
+      <ErrorLine error={act.error} />
+      <LandedLine landed={act.landed} />
+      {readError && <p className="notice">{readError}</p>}
+
+      <section className={styles.list}>
+        <h2>Paying you</h2>
+        {views == null ? (
+          <RowSkeletons />
+        ) : paid.length ? (
+          <ul>
+            {paid.map((v) => (
+              <TabRow key={String(v.id)} view={v} me={me} profiles={profiles} action={actionFor(v)} />
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.empty}>
+            No one is paying you yet. When a client sends you an invite link, open it here and the tab appears in this list.
+          </p>
+        )}
+      </section>
+
+      <section className={styles.list}>
+        <h2>You&apos;re paying</h2>
+        {views == null ? (
+          <RowSkeletons />
+        ) : paying.length ? (
+          <ul>
+            {paying.map((v) => (
+              <TabRow key={String(v.id)} view={v} me={me} profiles={profiles} action={actionFor(v)} />
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.empty}>
+            You aren&apos;t paying anyone yet. <Link href="/open">Open a tab</Link> for a freelancer, or try one of the demo freelancers: they
+            clock in on their own a few seconds later.
+          </p>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function RowSkeletons() {
+  return (
+    <div className={styles.skels} aria-label="Loading tabs">
+      {[0, 1].map((i) => (
+        <div key={i} className={`skeleton ${styles.rowSkel}`} />
+      ))}
+    </div>
+  );
+}
+
+function SendForm({ max, onDone }: { max: bigint; onDone: () => void }) {
+  const wallet = useWallet();
+  const [to, setTo] = useState("");
+  const [amount, setAmount] = useState("");
+  const act = useAction();
+  const value = Number(amount) > 0 ? toUnits(Number(amount)) : 0n;
+  const problem = !to
+    ? "Paste the wallet address you want to send to."
+    : !isAddress(to)
+      ? "That isn't a wallet address. It starts with 0x and has 42 characters."
+      : value <= 0n
+        ? "Enter an amount."
+        : value > max
+          ? `You have ${formatUsd(toUsd(max))}.`
+          : null;
+  useEffect(() => {
+    if (act.phase === "done") onDone();
+  }, [act.phase, onDone]);
+  return (
+    <form
+      className={styles.send}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (problem) return;
+        act.run(`Sent ${formatUsd(Number(amount))}`, async (sent) => {
+          const p = sendUsdc(wallet, to as Address, value);
+          sent();
+          return p;
+        });
+      }}
+    >
+      <div className="field">
+        <label htmlFor="to">Send to</label>
+        <input id="to" className="input" placeholder="0x…" value={to} onChange={(e) => setTo(e.target.value.trim())} autoComplete="off" />
+        <span className="hint">An exchange deposit address or any Monad wallet. You sign; Till pays the gas.</span>
+      </div>
+      <div className="field">
+        <label htmlFor="amt">Amount in USDC</label>
+        <input id="amt" className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+      </div>
+      <div className={styles.sendFoot}>
+        <button className="btn primary" disabled={!!problem || act.busy}>
+          {busyLabel(act.phase, "Send USDC")}
+        </button>
+        {problem && to && <span className="soft">{problem}</span>}
+      </div>
+      <ErrorLine error={act.error} />
+      <LandedLine landed={act.landed} />
+    </form>
+  );
+}

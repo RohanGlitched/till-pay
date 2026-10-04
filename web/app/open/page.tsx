@@ -1,0 +1,272 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { decodeEventLog, isAddress, zeroAddress, type Address, type Hex } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { Note } from "@/components/Note";
+import { ErrorLine, LandedLine, SignInPanel, busyLabel, useAction } from "@/components/ui";
+import { tillAbi } from "@/lib/abi";
+import { publicClient } from "@/lib/chain";
+import { DEMO_FREELANCERS } from "@/lib/demo";
+import { useProfile, useUsdcBalance } from "@/lib/hooks";
+import { inviteLink, saveInvite } from "@/lib/invite";
+import { InviteBox } from "@/components/InviteBox";
+import { useLive } from "@/lib/live";
+import { currency, formatDuration, formatUsd, toUnits, toUsd } from "@/lib/money";
+import { relay, requestTestUsdc, signPermit } from "@/lib/relay";
+import { useWallet } from "@/lib/wallet";
+import styles from "./open.module.css";
+
+type Who = "invite" | "demo" | "address";
+
+export default function OpenTab() {
+  const wallet = useWallet();
+  const me = wallet.address;
+  const { rates } = useLive();
+  const { balance, refresh: refreshBalance } = useUsdcBalance(me);
+  const myProfile = useProfile(me);
+  const [who, setWho] = useState<Who>("demo");
+  const [demo, setDemo] = useState(0);
+  const [addr, setAddr] = useState("");
+  const [rate, setRate] = useState("30");
+  const [budget, setBudget] = useState("5");
+  const [memo, setMemo] = useState("");
+  const [opened, setOpened] = useState<{ id: bigint; link?: string } | null>(null);
+  const act = useAction();
+  const faucet = useAction();
+
+  if (!wallet.ready) return <main className={`wrap ${styles.page}`} aria-busy="true" />;
+  if (!me)
+    return (
+      <main className={`wrap ${styles.page}`}>
+        <SignInPanel title="Sign in to open a tab">
+          <p>You fund the tab with test USDC; the freelancer is paid every second they&apos;re clocked in.</p>
+        </SignInPanel>
+      </main>
+    );
+
+  const rateN = Number(rate);
+  const budgetN = Number(budget);
+  const budgetUnits = budgetN > 0 ? toUnits(budgetN) : 0n;
+  const pick = DEMO_FREELANCERS[demo]!;
+  const payee: Address | null =
+    who === "demo" ? pick.address : who === "address" ? (isAddress(addr) ? (addr as Address) : null) : zeroAddress;
+
+  const problem =
+    who === "address" && !isAddress(addr)
+      ? "Paste the freelancer's wallet address, or invite them by link instead."
+      : payee?.toLowerCase() === me.toLowerCase()
+        ? "That's your own wallet. Invite the freelancer by link instead."
+        : !(rateN > 0)
+          ? "Set an hourly rate above zero."
+          : rateN > 1000
+            ? "Keep the hourly rate under $1,000 on testnet."
+            : !(budgetN > 0)
+              ? "Set a budget above zero."
+              : balance != null && budgetUnits > balance
+                ? `The budget is more than the ${formatUsd(toUsd(balance))} in your wallet.`
+                : memo.length > 48
+                  ? "Keep the description under 48 characters."
+                  : null;
+  const covers = rateN > 0 && budgetN > 0 ? formatDuration((budgetN / rateN) * 3600) : "—";
+  const previewCur = currency(who === "demo" ? pick.currency : "USD");
+  const previewPayee = who === "demo" ? { name: pick.name, place: pick.place } : { name: "Your freelancer", place: "anywhere" };
+  const myName = myProfile?.name || "You";
+
+  const submit = () =>
+    act.run("Tab opened", async (sent) => {
+      let inviteKey: Hex | null = null;
+      let invite: Address = zeroAddress;
+      if (who === "invite") {
+        inviteKey = generatePrivateKey();
+        invite = privateKeyToAccount(inviteKey).address;
+      }
+      const permit = await signPermit(wallet, budgetUnits);
+      const p = relay(wallet, "openWithPermit", [
+        payee ?? zeroAddress,
+        invite,
+        toUnits(rateN),
+        budgetUnits,
+        memo.trim(),
+        permit.deadline,
+        permit.v,
+        permit.r,
+        permit.s,
+      ]);
+      sent();
+      const landed = await p;
+      const receipt = await publicClient.getTransactionReceipt({ hash: landed.hash });
+      let id = 0n;
+      for (const log of receipt.logs) {
+        try {
+          const ev = decodeEventLog({ abi: tillAbi, data: log.data, topics: log.topics });
+          if (ev.eventName === "Opened") id = (ev.args as { id: bigint }).id;
+        } catch {}
+      }
+      if (inviteKey) saveInvite(id, inviteKey);
+      setOpened({ id, link: inviteKey ? inviteLink(id, inviteKey) : undefined });
+      refreshBalance();
+      return landed;
+    });
+
+  if (opened)
+    return (
+      <main className={`wrap ${styles.page}`}>
+        <div className={styles.done}>
+          <h1 className={styles.h1}>Tab № {opened.id.toString().padStart(4, "0")} is open.</h1>
+          <LandedLine landed={act.landed} />
+          {opened.link ? (
+            <InviteBox link={opened.link} />
+          ) : (
+            <p>
+              {who === "demo"
+                ? `${pick.name} will clock in by themselves in a few seconds. Watch the note print.`
+                : "The freelancer can clock in from their Till account now."}
+            </p>
+          )}
+          <div className={styles.row}>
+            <Link className="btn primary" href={`/tab/${opened.id}`}>
+              Go to the tab
+            </Link>
+            <Link className="btn" href="/app">
+              Your tabs
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+
+  return (
+    <main className={`wrap ${styles.page}`}>
+      <div className={styles.layout}>
+        <form
+          className={styles.form}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!problem && !act.busy) submit();
+          }}
+        >
+          <h1 className={styles.h1}>Open a tab</h1>
+
+          <fieldset className={styles.who}>
+            <legend>Who are you paying?</legend>
+            <label className={styles.choice}>
+              <input type="radio" name="who" checked={who === "demo"} onChange={() => setWho("demo")} />
+              <span>
+                <b>A demo freelancer</b>
+                <span className="soft">They clock in on their own a few seconds after you open the tab.</span>
+              </span>
+            </label>
+            {who === "demo" && (
+              <div className={styles.people}>
+                {DEMO_FREELANCERS.map((f, i) => (
+                  <button
+                    type="button"
+                    key={f.address}
+                    className={styles.person}
+                    aria-pressed={demo === i}
+                    onClick={() => setDemo(i)}
+                    style={{ ["--ink-c" as string]: currency(f.currency).ink }}
+                  >
+                    <b>{f.name}</b>
+                    <span>
+                      {f.work}, {f.place}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <label className={styles.choice}>
+              <input type="radio" name="who" checked={who === "invite"} onChange={() => setWho("invite")} />
+              <span>
+                <b>Someone I&apos;ll invite by link</b>
+                <span className="soft">You get a link to send by email or chat. They sign in with their email and join.</span>
+              </span>
+            </label>
+            <label className={styles.choice}>
+              <input type="radio" name="who" checked={who === "address"} onChange={() => setWho("address")} />
+              <span>
+                <b>A wallet address</b>
+                <span className="soft">If they already use Till or another Monad wallet.</span>
+              </span>
+            </label>
+            {who === "address" && (
+              <input className="input" placeholder="0x…" value={addr} onChange={(e) => setAddr(e.target.value.trim())} aria-label="Freelancer's wallet address" />
+            )}
+          </fieldset>
+
+          <div className={styles.pair}>
+            <div className="field">
+              <label htmlFor="rate">Hourly rate</label>
+              <div className={styles.money}>
+                <span aria-hidden>$</span>
+                <input id="rate" className="input" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} />
+              </div>
+              <span className="hint">USDC per hour, paid by the second.</span>
+            </div>
+            <div className="field">
+              <label htmlFor="budget">Budget</label>
+              <div className={styles.money}>
+                <span aria-hidden>$</span>
+                <input id="budget" className="input" inputMode="decimal" value={budget} onChange={(e) => setBudget(e.target.value)} />
+              </div>
+              <span className="hint">Covers {covers} of work. Unspent budget comes back when the tab closes.</span>
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="memo">What it&apos;s for (optional)</label>
+            <input id="memo" className="input" maxLength={48} value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="Logo for the autumn launch" />
+          </div>
+
+          <div className={styles.submit}>
+            <button className="btn primary" disabled={!!problem || act.busy}>
+              {busyLabel(act.phase, `Open tab with ${budgetN > 0 ? formatUsd(budgetN) : "$0"}`)}
+            </button>
+            <span className="soft">
+              Wallet: {balance == null ? "…" : formatUsd(toUsd(balance))}.{" "}
+              {balance != null && balance < budgetUnits && (
+                <button
+                  type="button"
+                  className={styles.inlineBtn}
+                  disabled={faucet.busy}
+                  onClick={() =>
+                    faucet.run("10 test USDC arrived", async (sent) => {
+                      sent();
+                      const r = await requestTestUsdc(me);
+                      refreshBalance();
+                      return r;
+                    })
+                  }
+                >
+                  {faucet.busy ? "Sending test USDC…" : "Get 10 test USDC"}
+                </button>
+              )}
+            </span>
+          </div>
+          {problem && <p className={styles.why}>{problem}</p>}
+          <p className="soft">You sign twice: once to let Till take the budget from your wallet, once to open the tab. No gas.</p>
+          <ErrorLine error={act.error ?? faucet.error} />
+          <LandedLine landed={faucet.landed} />
+        </form>
+
+        <aside className={styles.preview} aria-label="What the freelancer will see">
+          <p className={styles.previewLabel}>What {who === "demo" ? pick.name : "they"} will see</p>
+          <Note
+            id={0}
+            usd={0}
+            cur={previewCur}
+            rates={rates}
+            payee={previewPayee}
+            payer={{ name: myName, place: myProfile?.place || "abroad" }}
+            rateUsd={rateN > 0 ? rateN : 0}
+            hours={0}
+            live={false}
+            status={rateN > 0 && budgetN > 0 ? `Ready to clock in, up to ${covers}` : "Set a rate and a budget"}
+          />
+        </aside>
+      </div>
+    </main>
+  );
+}

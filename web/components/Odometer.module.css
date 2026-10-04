@@ -1,0 +1,28 @@
+.odo {
+  display: inline-flex;
+  align-items: flex-start;
+  line-height: 1;
+  white-space: nowrap;
+}
+.wheel {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  position: relative;
+}
+.strip {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.25, 1);
+  will-change: transform;
+}
+.strip > span {
+  height: 1em;
+  line-height: 1;
+  display: block;
+}
+.glyph {
+  display: inline-block;
+  height: 1em;
+  line-height: 1;
+}

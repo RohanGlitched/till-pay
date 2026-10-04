@@ -1,0 +1,147 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  padding-top: 32px;
+  padding-bottom: 40px;
+}
+.noteWrap {
+  max-width: 1100px;
+}
+.noteSkel {
+  width: 100%;
+  max-width: 1100px;
+  aspect-ratio: 11 / 5;
+  border-radius: 14px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+}
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.controls h2,
+.stub h2 {
+  font-variation-settings: "wdth" 112;
+  font-size: 24px;
+}
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.topup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+.payouts {
+  border-left: 3px solid var(--serial);
+  padding: 4px 0 4px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.payoutsHead {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.payouts ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.payouts li span {
+  color: var(--ink);
+  font-weight: 600;
+}
+.payouts a,
+.lines a {
+  text-decoration: none;
+}
+.facts dl {
+  margin: 0;
+  border-top: 1.5px solid var(--ink);
+}
+.facts dl > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.facts dt {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.facts dd {
+  margin: 0;
+  min-width: 0;
+}
+.stub {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stubSkel {
+  height: 160px;
+}
+.lines {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  border-top: 1.5px solid var(--ink);
+}
+.lines li {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px dashed var(--rule);
+  font-size: 15px;
+}
+.when {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.what {
+  min-width: 0;
+}
+.missing {
+  font-variation-settings: "wdth" 112;
+  font-size: 32px;
+}
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+@media (max-width: 560px) {
+  .lines li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .topup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .buttons > * {
+    flex: 1 1 auto;
+  }
+}

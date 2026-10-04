@@ -1,0 +1,93 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: 6px;
+}
+.main:hover b {
+  text-decoration: underline;
+}
+.who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.who b {
+  font-weight: 650;
+  font-size: 16.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.money {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.amount {
+  font-size: 22px;
+  font-weight: 550;
+}
+.state {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.working {
+  color: var(--serial);
+  font-weight: 600;
+}
+.working i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--serial);
+}
+.action {
+  flex: none;
+}
+.spin {
+  animation: turn 24s linear infinite;
+}
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 640px) {
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .main {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+  .money {
+    grid-column: 2;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .action > * {
+    width: 100%;
+  }
+}

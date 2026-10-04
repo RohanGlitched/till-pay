@@ -1,0 +1,249 @@
+/* Till: security paper, intaglio ink, serial red. Plan in DESIGN.md. */
+:root {
+  --paper: #edf1ec;
+  --sheet: #f7f9f6;
+  --ink: #17332b;
+  --ink-soft: #4e6159;
+  --rule: #cfd8d1;
+  --serial: #c0266d;
+  --intaglio: #2d4fa0;
+  --ok: #1f7a4d;
+  --warn: #9a5a12;
+  --note-paper: #f4f7f2;
+  --shadow: 0 1px 0 rgba(23, 51, 43, 0.06), 0 18px 40px -24px rgba(23, 51, 43, 0.35);
+  --wide: "wdth" 125;
+  --semi: "wdth" 87;
+  --radius: 6px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f1a17;
+    --sheet: #16241f;
+    --ink: #e2ede6;
+    --ink-soft: #93a69c;
+    --rule: #2a3a34;
+    --serial: #ff5c9d;
+    --intaglio: #8ea9ff;
+    --ok: #7bd3a4;
+    --warn: #e7b477;
+    --note-paper: #13201c;
+    --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f1a17;
+  --sheet: #16241f;
+  --ink: #e2ede6;
+  --ink-soft: #93a69c;
+  --rule: #2a3a34;
+  --serial: #ff5c9d;
+  --intaglio: #8ea9ff;
+  --ok: #7bd3a4;
+  --warn: #e7b477;
+  --note-paper: #13201c;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+p {
+  margin: 0;
+  max-width: 62ch;
+}
+a {
+  color: var(--intaglio);
+  text-underline-offset: 3px;
+}
+:focus-visible {
+  outline: 2px solid var(--intaglio);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+::selection {
+  background: color-mix(in srgb, var(--serial) 24%, transparent);
+}
+
+/* Amounts are denominations: set wide. */
+.denom {
+  font-variation-settings: var(--wide);
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: -0.01em;
+}
+/* Serial numbers: semi-condensed, serial red, spaced like a note's serial. */
+.serial {
+  font-variation-settings: var(--semi);
+  color: var(--serial);
+  letter-spacing: 0.06em;
+  font-feature-settings: "tnum" 1;
+}
+.soft {
+  color: var(--ink-soft);
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-inline: 16px;
+}
+@media (min-width: 720px) {
+  .wrap {
+    padding-inline: 32px;
+  }
+}
+
+/* Buttons: ink on paper, the primary one filled. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font: 600 15.5px/1 var(--font-archivo), sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.06s;
+}
+.btn:hover {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn.primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn.primary:hover {
+  background: color-mix(in srgb, var(--ink) 88%, var(--serial));
+}
+.btn.live {
+  background: var(--serial);
+  border-color: var(--serial);
+  color: #fff;
+}
+.btn.quiet {
+  border-color: var(--rule);
+}
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn.small {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.field label {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.field .hint {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.input {
+  min-height: 48px;
+  width: 100%;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--sheet);
+  color: var(--ink);
+  padding: 0 14px;
+  font: 500 16px/1 var(--font-archivo), sans-serif;
+}
+.input:focus {
+  border-color: var(--ink);
+  outline: none;
+}
+select.input {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%), linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 21px, calc(100% - 15px) 21px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 36px;
+}
+
+.notice {
+  border-left: 3px solid var(--warn);
+  padding: 8px 0 8px 14px;
+  font-size: 14.5px;
+}
+.notice.error {
+  border-color: var(--serial);
+}
+.notice.ok {
+  border-color: var(--ok);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--rule) 60%, transparent), color-mix(in srgb, var(--rule) 25%, transparent), color-mix(in srgb, var(--rule) 60%, transparent));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

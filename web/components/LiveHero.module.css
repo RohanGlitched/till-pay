@@ -1,0 +1,41 @@
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.placeholder {
+  width: 100%;
+  aspect-ratio: 11 / 5;
+  border-radius: 14px;
+}
+.caption {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.specimen {
+  position: relative;
+}
+.stamp {
+  position: absolute;
+  left: 12%;
+  bottom: 14%;
+  transform: rotate(-9deg);
+  font-variation-settings: "wdth" 125;
+  font-weight: 800;
+  font-size: clamp(18px, 3.4vw, 40px);
+  color: var(--serial);
+  border: 3px solid var(--serial);
+  border-radius: 8px;
+  padding: 0 18px;
+  opacity: 0.78;
+  pointer-events: none;
+  letter-spacing: 0.04em;
+}
+.strip {
+  font-size: 15px;
+  max-width: none;
+}
+.strip b {
+  font-weight: 650;
+}

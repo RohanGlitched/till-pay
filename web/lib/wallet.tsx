@@ -1,0 +1,159 @@
+"use client";
+
+import { PrivyProvider, usePrivy, useWallets } from "@privy-io/react-auth";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createWalletClient, custom, type Address, type Hex, type TypedDataDefinition } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { monadTestnet } from "./chain";
+
+/**
+ * One wallet interface for the app. People sign in with email through Privy (an embedded wallet,
+ * no seed phrase, no gas), or start instantly with a practice wallet kept in this browser.
+ * Till never asks either one to pay gas: every action is a signature the relayer submits.
+ */
+export type Wallet = {
+  ready: boolean;
+  address?: Address;
+  kind: "email" | "practice" | null;
+  label: string;
+  privyEnabled: boolean;
+  signIn: () => void;
+  usePractice: () => void;
+  signOut: () => void;
+  signTypedData: (data: TypedDataDefinition) => Promise<Hex>;
+  signMessage: (raw: Hex) => Promise<Hex>;
+};
+
+const WalletContext = createContext<Wallet | null>(null);
+const PRACTICE_KEY = "till.practice.v1";
+const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+
+function readPractice(): Hex | null {
+  try {
+    return (localStorage.getItem(PRACTICE_KEY) as Hex | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function usePracticeWallet() {
+  const [key, setKey] = useState<Hex | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    setKey(readPractice());
+    setLoaded(true);
+  }, []);
+  const account = useMemo(() => (key ? privateKeyToAccount(key) : null), [key]);
+  const create = useCallback(() => {
+    const k = readPractice() ?? generatePrivateKey();
+    try {
+      localStorage.setItem(PRACTICE_KEY, k);
+    } catch {}
+    setKey(k);
+  }, []);
+  const forget = useCallback(() => {
+    setKey(null);
+  }, []);
+  return { account, loaded, create, forget };
+}
+
+function PracticeOnly({ children }: { children: ReactNode }) {
+  const practice = usePracticeWallet();
+  const value = useMemo<Wallet>(
+    () => ({
+      ready: practice.loaded,
+      address: practice.account?.address,
+      kind: practice.account ? "practice" : null,
+      label: "Practice wallet",
+      privyEnabled: false,
+      signIn: practice.create,
+      usePractice: practice.create,
+      signOut: practice.forget,
+      signTypedData: async (data) => {
+        if (!practice.account) throw new Error("Sign in first.");
+        return practice.account.signTypedData(data);
+      },
+      signMessage: async (raw) => {
+        if (!practice.account) throw new Error("Sign in first.");
+        return practice.account.signMessage({ message: { raw } });
+      },
+    }),
+    [practice],
+  );
+  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+}
+
+function WithPrivy({ children }: { children: ReactNode }) {
+  const { ready, authenticated, login, logout, user } = usePrivy();
+  const { wallets } = useWallets();
+  const practice = usePracticeWallet();
+  const embedded = wallets.find((w) => w.walletClientType === "privy");
+  const email = user?.email?.address ?? user?.google?.email;
+
+  const value = useMemo<Wallet>(() => {
+    if (authenticated && embedded) {
+      const client = async () =>
+        createWalletClient({
+          account: embedded.address as Address,
+          chain: monadTestnet,
+          transport: custom(await embedded.getEthereumProvider()),
+        });
+      return {
+        ready: true,
+        address: embedded.address as Address,
+        kind: "email",
+        label: email ?? "Signed in",
+        privyEnabled: true,
+        signIn: login,
+        usePractice: practice.create,
+        signOut: () => void logout(),
+        signTypedData: async (data) => (await client()).signTypedData(data as never),
+        signMessage: async (raw) => (await client()).signMessage({ message: { raw } }),
+      };
+    }
+    return {
+      ready: ready && practice.loaded && (!authenticated || !!embedded),
+      address: practice.account?.address,
+      kind: practice.account ? "practice" : null,
+      label: "Practice wallet",
+      privyEnabled: true,
+      signIn: login,
+      usePractice: practice.create,
+      signOut: practice.forget,
+      signTypedData: async (data) => {
+        if (!practice.account) throw new Error("Sign in first.");
+        return practice.account.signTypedData(data);
+      },
+      signMessage: async (raw) => {
+        if (!practice.account) throw new Error("Sign in first.");
+        return practice.account.signMessage({ message: { raw } });
+      },
+    };
+  }, [authenticated, embedded, email, login, logout, practice, ready]);
+
+  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+}
+
+export function WalletProvider({ children }: { children: ReactNode }) {
+  if (!PRIVY_APP_ID) return <PracticeOnly>{children}</PracticeOnly>;
+  return (
+    <PrivyProvider
+      appId={PRIVY_APP_ID}
+      config={{
+        loginMethods: ["email", "google"],
+        appearance: { theme: "light", accentColor: "#17332B", landingHeader: "Sign in to Till", showWalletLoginFirst: false },
+        embeddedWallets: { ethereum: { createOnLogin: "all-users" }, showWalletUIs: false },
+        defaultChain: monadTestnet,
+        supportedChains: [monadTestnet],
+      }}
+    >
+      <WithPrivy>{children}</WithPrivy>
+    </PrivyProvider>
+  );
+}
+
+export function useWallet(): Wallet {
+  const w = useContext(WalletContext);
+  if (!w) throw new Error("useWallet outside WalletProvider");
+  return w;
+}

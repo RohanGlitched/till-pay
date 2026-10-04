@@ -1,0 +1,57 @@
+.foot {
+  margin-top: 96px;
+  border-top: 1.5px solid var(--ink);
+  padding: 32px 0 48px;
+}
+.inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 28px 48px;
+}
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+.contracts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.contracts div {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 12px;
+}
+.contracts dt {
+  font-size: 14px;
+  font-weight: 600;
+}
+.contracts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13.5px;
+}
+.contracts a {
+  text-decoration: none;
+}
+.links {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 14.5px;
+}
+@media (max-width: 760px) {
+  .inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .contracts div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
