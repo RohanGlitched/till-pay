@@ -17,9 +17,18 @@ const FORWARDER = process.env.FORWARDER;
 const USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
 const keys = JSON.parse(fs.readFileSync(process.env.KEYS || "keys/wallets.json", "utf8"));
 const TICK_MS = Number(process.env.TICK_MS || 4000);
-const SETTLE_EVERY_MS = Number(process.env.SETTLE_EVERY_MS || 180_000);
+const SETTLE_EVERY_MS = Number(process.env.SETTLE_EVERY_MS || 600_000);
 // When run from cron each minute, exit before the next run starts (cron + flock restart it).
 const RUN_FOR_MS = Number(process.env.RUN_FOR_MS || 0);
+// Testnet money is scarce, so the seeded tabs run lean: small budgets that are topped up from what
+// the freelancers pass back, short sessions, and a settle every ten minutes.
+const usd = (n) => BigInt(Math.round(n * 1e6));
+const BUDGET = usd(Number(process.env.BUDGET || 6));
+const TOPUP = usd(Number(process.env.TOPUP || 5));
+const RECYCLE_ABOVE = usd(Number(process.env.RECYCLE_ABOVE || 4));
+const FUND = usd(Number(process.env.FUND || 6));
+const FAUCET_RESERVE = usd(Number(process.env.FAUCET_RESERVE || 10));
+const WORK_MIN = Number(process.env.WORK_MIN || 24);
 const STARTED = Date.now();
 
 const chain = defineChain({ id: 10143, name: "Monad Testnet", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
@@ -142,11 +151,15 @@ async function recycle(fromKey, toKey, value) {
 
 const usdcOf = (a) => pub.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [a] });
 
-/** Is this freelancer inside their working hours (local 08:00 to 19:00, a ten-minute break each hour)? */
+/**
+ * Is this freelancer in a work session? Local 07:00 to 22:00, WORK_MIN minutes in each hour, with
+ * sessions staggered between people so someone is always on the clock somewhere.
+ */
 function onShift(f, now = new Date()) {
   const localMin = (now.getUTCHours() * 60 + now.getUTCMinutes() + f.utc * 60 + 1440) % 1440;
-  if (process.env.ALWAYS_ON) return localMin % 60 < 52;
-  return localMin >= 8 * 60 && localMin < 19 * 60 && localMin % 60 < 50;
+  const slot = (now.getUTCMinutes() + FREELANCERS.indexOf(f) * 12) % 60;
+  if (process.env.ALWAYS_ON) return slot < 52;
+  return localMin >= 7 * 60 && localMin < 22 * 60 && slot < WORK_MIN;
 }
 
 async function ensureProfiles() {
@@ -161,13 +174,13 @@ async function ensureProfiles() {
 async function ensureClientFunds() {
   for (const c of CLIENTS) {
     const bal = await usdcOf(acct(c.key).address);
-    if (bal >= 15_000_000n) continue;
+    if (bal >= BUDGET) continue;
     const pool = await usdcOf(faucet.account.address);
-    if (pool < 40_000_000n) continue;
-    const hash = await faucet.writeContract({ address: USDC, abi: usdcAbi, functionName: "transfer", args: [acct(c.key).address, 30_000_000n] });
+    if (pool < FUND + FAUCET_RESERVE) continue;
+    const hash = await faucet.writeContract({ address: USDC, abi: usdcAbi, functionName: "transfer", args: [acct(c.key).address, FUND] });
     const r = await pub.waitForTransactionReceipt({ hash });
     if (r.status !== "success") throw new Error(`funding ${c.name} reverted`);
-    log(`funded ${c.name} with 30 USDC`);
+    log(`funded ${c.name} with ${Number(FUND) / 1e6} USDC`);
   }
 }
 
@@ -209,7 +222,7 @@ async function tick() {
     // Their regular client: keep one tab open, topped up, and follow working hours.
     const client = CLIENTS.find((c) => c.key === f.client);
     if (!ownTab) {
-      const budget = 12_000_000n;
+      const budget = BUDGET;
       if ((await usdcOf(acct(client.key).address)) < budget) continue;
       const p = await permit(client.key, budget);
       await forward(client.key, "openWithPermit", [me, "0x0000000000000000000000000000000000000000", BigInt(f.rate * 1e6), budget, f.memo, p.deadline, p.v, p.r, p.s]);
@@ -218,8 +231,8 @@ async function tick() {
     }
     const t = ownTab.tab;
     const left = t.budget - ownTab.earned;
-    if (left < 2_000_000n) {
-      const amount = 10_000_000n;
+    if (left < 1_000_000n && onShift(f)) {
+      const amount = TOPUP;
       if ((await usdcOf(acct(client.key).address)) >= amount) {
         const p = await permit(client.key, amount);
         await forward(client.key, "topUpWithPermit", [ownTab.id, amount, p.deadline, p.v, p.r, p.s]);
@@ -237,7 +250,7 @@ async function tick() {
 
     // Pass earnings back to the client so the loop never runs dry.
     const earnedBal = await usdcOf(me);
-    if (earnedBal > 8_000_000n) {
+    if (earnedBal > RECYCLE_ABOVE) {
       await recycle(f.key, f.client, earnedBal - 1_000_000n);
       log(`${f.name} sent ${(Number(earnedBal - 1_000_000n) / 1e6).toFixed(2)} USDC back to ${client.name}`);
     }

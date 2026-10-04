@@ -104,6 +104,23 @@ async function shot(page, name) {
   await fp.getByText(/Clocked out\. Landed/).waitFor({ timeout: 60000 });
   step("freelancer clocked out");
 
+  // Hand the test USDC back to the faucet so the run doesn't drain it.
+  if (process.env.RETURN_TO) {
+    for (const [p, label] of [[fp, "freelancer"], [page, "client"]]) {
+      await p.goto(`${base}/app`);
+      await p.waitForTimeout(4000);
+      const bal = await p.locator("main section .denom").first().innerText().catch(() => "$0");
+      const amount = Number(bal.replace(/[$,]/g, ""));
+      if (amount < 0.01) continue;
+      await p.getByRole("button", { name: "Send to another wallet" }).click();
+      await p.getByLabel("Send to").fill(process.env.RETURN_TO);
+      await p.getByLabel("Amount in USDC").fill(String(Math.floor(amount * 100) / 100));
+      await p.getByRole("button", { name: "Send USDC" }).click();
+      await expectOk(p, /Sent \$/);
+      step(`${label} returned $${Math.floor(amount * 100) / 100} to the faucet`);
+    }
+  }
+
   await browser.close();
   console.log("E2E PASSED");
 })().catch((e) => {

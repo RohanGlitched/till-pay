@@ -107,7 +107,7 @@ export default function YourTabs() {
           <Link href="/open" className={`btn ${lowBalance ? "" : "primary"}`}>
             Open a tab
           </Link>
-          {!lowBalance && (
+          {balance != null && balance > 0n && (
             <button className="btn quiet" onClick={() => setSendOpen((o) => !o)} aria-expanded={sendOpen}>
               Send to another wallet
             </button>

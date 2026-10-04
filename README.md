@@ -2,12 +2,12 @@
 
 **Get paid every second you work.** A client abroad opens a tab in USDC with an hourly rate and a budget. While the freelancer is clocked in, pay builds up every second on Monad and lands in their wallet as they work. Either side can stop the clock at any moment; closing the tab sends the unspent budget straight back.
 
-Live app: **{{SITE}}** · Monad testnet · Circle test USDC
+Live app: **https://till-pay.vercel.app** · Monad testnet · Circle test USDC
 
 | | |
 |---|---|
-| Till contract | [`{{TILL}}`](https://testnet.monadvision.com/address/{{TILL}}) |
-| Gasless forwarder (OpenZeppelin ERC2771Forwarder) | [`{{FORWARDER}}`](https://testnet.monadvision.com/address/{{FORWARDER}}) |
+| Till contract | [`0x4720B1FA15a8e3b8AEc7aA6B7b627dCacEaa1b4f`](https://testnet.monadvision.com/address/0x4720B1FA15a8e3b8AEc7aA6B7b627dCacEaa1b4f) |
+| Gasless forwarder (OpenZeppelin ERC2771Forwarder) | [`0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1`](https://testnet.monadvision.com/address/0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1) |
 | USDC (Circle, Monad testnet) | [`0x534b2f3A21130d7a60830c2Df862319e593943A3`](https://testnet.monadvision.com/address/0x534b2f3A21130d7a60830c2Df862319e593943A3) |
 
 ## The problem
@@ -31,7 +31,7 @@ Every tab is drawn as a **banknote that prints itself**: a guilloche rosette in 
 
 ## Try it
 
-1. Open {{SITE}} and choose **Open a tab**. Sign in with your email (or a practice wallet).
+1. Open https://till-pay.vercel.app and choose **Open a tab**. Sign in with your email (or a practice wallet).
 2. Click **Get 10 test USDC**, pick a demo freelancer (they clock in by themselves a few seconds later) and open a tab with a couple of dollars.
 3. Watch the note print and the payouts land. Pause pay, top up, close the tab and see the refund in the pay stub.
 4. To be the freelancer, choose **Someone I'll invite by link** and open the link in another browser.
