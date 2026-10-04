@@ -18,6 +18,9 @@ const USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
 const keys = JSON.parse(fs.readFileSync(process.env.KEYS || "keys/wallets.json", "utf8"));
 const TICK_MS = Number(process.env.TICK_MS || 4000);
 const SETTLE_EVERY_MS = Number(process.env.SETTLE_EVERY_MS || 180_000);
+// When run from cron each minute, exit before the next run starts (cron + flock restart it).
+const RUN_FOR_MS = Number(process.env.RUN_FOR_MS || 0);
+const STARTED = Date.now();
 
 const chain = defineChain({ id: 10143, name: "Monad Testnet", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
 const pub = createPublicClient({ chain, transport: http(RPC) });
@@ -168,7 +171,9 @@ async function ensureClientFunds() {
   }
 }
 
-let lastSettle = 0;
+// Across cron runs, remember when running tabs were last settled.
+const SETTLE_STAMP = process.env.SETTLE_STAMP || "";
+let lastSettle = SETTLE_STAMP && fs.existsSync(SETTLE_STAMP) ? Number(fs.readFileSync(SETTLE_STAMP, "utf8")) || 0 : 0;
 
 async function tick() {
   const now = Math.floor(Date.now() / 1000);
@@ -246,14 +251,16 @@ async function tick() {
       log(`settled ${due.length} running tabs`);
     }
     lastSettle = Date.now();
+    if (SETTLE_STAMP) fs.writeFileSync(SETTLE_STAMP, String(lastSettle));
   }
 }
 
 async function main() {
   if (!TILL || !FORWARDER) throw new Error("Set TILL and FORWARDER.");
   log(`till bots on ${RPC}, keeper ${keeper.account.address}`);
-  await ensureProfiles().catch((e) => log("profiles:", e.shortMessage || e.message));
+  if (!process.env.SKIP_PROFILES) await ensureProfiles().catch((e) => log("profiles:", e.shortMessage || e.message));
   for (;;) {
+    if (RUN_FOR_MS && Date.now() - STARTED > RUN_FOR_MS) return;
     try {
       await ensureClientFunds();
       await tick();
