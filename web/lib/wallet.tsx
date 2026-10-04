@@ -1,7 +1,7 @@
 "use client";
 
-import { PrivyProvider, useLoginWithPasskey, usePrivy, useSignupWithPasskey, useWallets } from "@privy-io/react-auth";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { PrivyProvider, useCreateWallet, useLoginWithPasskey, usePrivy, useSignupWithPasskey, useWallets } from "@privy-io/react-auth";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createWalletClient, custom, type Address, type Hex, type TypedDataDefinition } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { monadTestnet } from "./chain";
@@ -16,6 +16,8 @@ export type Wallet = {
   address?: Address;
   kind: "email" | "practice" | null;
   label: string;
+  /** How a Privy user signed in. */
+  method?: "passkey" | "email";
   privyEnabled: boolean;
   signIn: () => void;
   /** Passkey onboarding (Privy): create an account with a device passkey, or sign back in with it. */
@@ -96,12 +98,26 @@ function PracticeOnly({ children }: { children: ReactNode }) {
 
 function WithPrivy({ children }: { children: ReactNode }) {
   const { ready, authenticated, login, logout, user } = usePrivy();
-  const { wallets } = useWallets();
+  const { wallets, ready: walletsReady } = useWallets();
   const practice = usePracticeWallet();
   const { signupWithPasskey } = useSignupWithPasskey();
   const { loginWithPasskey } = useLoginWithPasskey();
+  const { createWallet } = useCreateWallet();
+  const creating = useRef(false);
   const embedded = wallets.find((w) => w.walletClientType === "privy");
-  const email = user?.email?.address ?? user?.google?.email ?? (user?.linkedAccounts.some((a) => a.type === "passkey") ? "Passkey account" : undefined);
+
+  // Make sure every signed-in user has an embedded wallet, however they signed up (passkey, email).
+  useEffect(() => {
+    if (!ready || !authenticated || !walletsReady || embedded || creating.current) return;
+    creating.current = true;
+    createWallet()
+      .catch((e) => console.warn("createWallet", e))
+      .finally(() => {
+        creating.current = false;
+      });
+  }, [ready, authenticated, walletsReady, embedded, createWallet]);
+  const email = user?.email?.address ?? user?.google?.email;
+  const viaPasskey = !email && !!user?.linkedAccounts.some((a) => a.type === "passkey");
 
   const value = useMemo<Wallet>(() => {
     if (authenticated && embedded) {
@@ -115,7 +131,8 @@ function WithPrivy({ children }: { children: ReactNode }) {
         ready: true,
         address: embedded.address as Address,
         kind: "email",
-        label: email ?? "Signed in",
+        label: email ?? (viaPasskey ? "Passkey account" : "Signed in"),
+        method: viaPasskey ? "passkey" : "email",
         privyEnabled: true,
         signIn: login,
         passkeySignUp: () => signupWithPasskey(),
@@ -149,7 +166,7 @@ function WithPrivy({ children }: { children: ReactNode }) {
         return practice.account.signMessage({ message: { raw } });
       },
     };
-  }, [authenticated, embedded, email, login, logout, practice, ready, signupWithPasskey, loginWithPasskey]);
+  }, [authenticated, embedded, email, viaPasskey, login, logout, practice, ready, signupWithPasskey, loginWithPasskey]);
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 }

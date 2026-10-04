@@ -93,7 +93,7 @@ export default function YourTabs() {
         <div className={styles.walletSide}>
           <h1 className={styles.h1}>{mine?.name ? `${mine.name.split(" ")[0]}'s tabs` : "Your tabs"}</h1>
           <p className={styles.addr}>
-            {wallet.kind === "email" ? `Signed in as ${wallet.label}. ` : "Practice wallet in this browser. "}
+            {wallet.kind === "email" ? (wallet.method === "passkey" ? "Signed in with a passkey. " : `Signed in as ${wallet.label}. `) : "Practice wallet in this browser. "}
             {usd != null && myCur.code !== "USD" && rates ? `${formatUsd(usd)} is about ${formatMoney(usd, myCur, rates)}.` : ""}
           </p>
           <div className={styles.walletActions}>
