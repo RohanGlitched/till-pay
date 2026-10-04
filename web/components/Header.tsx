@@ -72,7 +72,7 @@ function AccountMenu() {
           >
             Sign out
           </button>
-          {wallet.kind === "practice" && <p className={styles.menuNote}>Your practice wallet stays in this browser; sign in again to get it back.</p>}
+          {wallet.kind === "practice" && <p className={styles.menuNote}>Your practice wallet stays in this browser. To get it back, choose &ldquo;Use a practice wallet&rdquo; on any sign-in panel.</p>}
         </div>
       )}
     </div>

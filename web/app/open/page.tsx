@@ -9,7 +9,7 @@ import { ErrorLine, LandedLine, SignInPanel, busyLabel, useAction } from "@/comp
 import { tillAbi } from "@/lib/abi";
 import { publicClient } from "@/lib/chain";
 import { DEMO_FREELANCERS } from "@/lib/demo";
-import { useProfile, useUsdcBalance } from "@/lib/hooks";
+import { useAutoDrip, useProfile, useUsdcBalance } from "@/lib/hooks";
 import { inviteLink, saveInvite } from "@/lib/invite";
 import { InviteBox } from "@/components/InviteBox";
 import { useLive } from "@/lib/live";
@@ -35,6 +35,9 @@ export default function OpenTab() {
   const [opened, setOpened] = useState<{ id: bigint; link?: string } | null>(null);
   const act = useAction();
   const faucet = useAction();
+  const drip = useAutoDrip(me, balance, refreshBalance);
+  // While the first 25 test AUSD are on their way, don't tell people their wallet is empty.
+  const shownBalance = drip.sending ? null : balance;
 
   if (!wallet.ready) return <main className={`wrap ${styles.page}`} aria-busy="true" />;
   if (!me)
@@ -64,8 +67,10 @@ export default function OpenTab() {
             ? "Keep the hourly rate under $1,000 on testnet."
             : !(budgetN > 0)
               ? "Set a budget above zero."
-              : balance != null && budgetUnits > balance
-                ? `The budget is more than the ${formatUsd(toUsd(balance))} in your wallet.`
+              : budgetN < 0.5
+                ? "The smallest tab is $0.50."
+              : shownBalance != null && budgetUnits > shownBalance
+                ? `The budget is more than the ${formatUsd(toUsd(shownBalance))} in your wallet.`
                 : memo.length > 48
                   ? "Keep the description under 48 characters."
                   : null;
@@ -231,8 +236,8 @@ export default function OpenTab() {
               {busyLabel(act.phase, `Open tab with ${budgetN > 0 ? formatUsd(budgetN) : "$0"}`)}
             </button>
             <span className="soft">
-              Wallet: {balance == null ? "…" : formatUsd(toUsd(balance))}.{" "}
-              {balance != null && balance < budgetUnits && (
+              {drip.sending ? "Sending you 25 test AUSD…" : `Wallet: ${balance == null ? "…" : formatUsd(toUsd(balance))}.`}{" "}
+              {shownBalance != null && shownBalance < budgetUnits && (
                 <button
                   type="button"
                   className={styles.inlineBtn}
@@ -254,7 +259,7 @@ export default function OpenTab() {
           {problem && <p className={styles.why}>{problem}</p>}
           <p className="soft">You sign twice: once to let Till take the budget from your wallet, once to open the tab. No gas.</p>
           <ErrorLine error={act.error ?? faucet.error} />
-          <LandedLine landed={faucet.landed} />
+          <LandedLine landed={faucet.landed ?? drip.landed} />
         </form>
 
         <aside className={styles.preview} aria-label="What the freelancer will see">

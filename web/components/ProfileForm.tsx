@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CURRENCIES, currency } from "@/lib/money";
 import { relay } from "@/lib/relay";
+import { PROFILE_SAVED } from "@/lib/hooks";
 import { codeToBytes3, type Profile } from "@/lib/tabs";
 import { useWallet } from "@/lib/wallet";
 import { ErrorLine, LandedLine, busyLabel, useAction } from "./ui";
@@ -63,6 +64,7 @@ export function ProfileForm({
           sent();
           const r = await p;
           setSaved({ name: name.trim(), place: place.trim(), currency: cur });
+          window.dispatchEvent(new Event(PROFILE_SAVED));
           onSaved?.();
           setOpen(false);
           return r;

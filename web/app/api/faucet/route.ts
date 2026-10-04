@@ -1,6 +1,6 @@
 import { encodeFunctionData, isAddress, type Address } from "viem";
 import { AGORA_FAUCET, DOLLAR, dollarAbi, publicClient } from "@/lib/chain";
-import { json, limited, revertReason, sendAndWait, signer } from "@/lib/server";
+import { clientIp, json, limited, revertReason, sendAndWait, signer } from "@/lib/server";
 
 export const runtime = "nodejs";
 
@@ -16,8 +16,7 @@ export async function POST(req: Request) {
   const b = (await req.json().catch(() => null)) as { address?: Address } | null;
   if (!b?.address || !isAddress(b.address)) return json({ error: "Sign in first so we know where to send it." }, 400);
   const who = b.address.toLowerCase();
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "?";
-  if (limited(`faucet:${who}`, 1, 3_600_000) || limited(`faucet-ip:${ip}`, 6, 3_600_000))
+  if (limited(`faucet:${who}`, 1, 3_600_000) || limited(`faucet-ip:${clientIp(req)}`, 6, 3_600_000) || limited("faucet:all", 120, 3_600_000))
     return json({ error: "Test AUSD was sent here in the last hour. Try again later." }, 429);
   const balance = (await publicClient.readContract({ address: DOLLAR, abi: dollarAbi, functionName: "balanceOf", args: [b.address] })) as bigint;
   if (balance >= ENOUGH) return json({ error: "You already have enough test AUSD to open a tab." }, 400);
@@ -34,7 +33,7 @@ export async function POST(req: Request) {
       await sendAndWait(faucet, { to: AGORA_FAUCET, data: refill }).catch(() => null);
     }
     const data = encodeFunctionData({ abi: dollarAbi, functionName: "transfer", args: [b.address, DRIP] });
-    const landed = await sendAndWait(faucet, { to: DOLLAR, data });
+    const { logs: _logs, ...landed } = await sendAndWait(faucet, { to: DOLLAR, data });
     return json({ ...landed, amount: 25 });
   } catch (e) {
     return json({ error: revertReason(e) }, 502);

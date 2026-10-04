@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { useLive } from "@/lib/live";
+import { settleNow } from "@/lib/relay";
+import { stateOf } from "@/lib/tabs";
 import { currency, formatUsd, toUsd } from "@/lib/money";
 import { useNetwork } from "@/lib/network";
 import { Note } from "./Note";
@@ -13,6 +16,16 @@ export function LiveHero() {
   const net = useNetwork();
   const { rates } = useLive();
   const featured = net?.featured ?? null;
+
+  // One real payout while the visitor watches: the featured tab is paid once, a few seconds after the
+  // page opens, so the hero's "paid … ago", the receipt and the block tape all move. The relayer caps the pace.
+  const asked = useRef(false);
+  useEffect(() => {
+    if (asked.current || !featured || stateOf(featured.tab, Math.floor(Date.now() / 1000)) !== "working") return;
+    asked.current = true;
+    const h = setTimeout(() => settleNow(featured.id).catch(() => {}), 4000);
+    return () => clearTimeout(h);
+  }, [featured]);
 
   return (
     <div className={styles.hero}>

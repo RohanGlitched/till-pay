@@ -147,6 +147,9 @@ export function plainError(e: unknown): string {
     [/NotPayee/, "Only the freelancer on this tab can clock in."],
     [/NotParty/, "Only the client or the freelancer on this tab can do that."],
     [/transfer amount exceeds balance|exceeds balance/i, "Not enough AUSD in your wallet. Get test AUSD first."],
+    [/timed out|timeout/i, "Monad hasn't confirmed that yet. Give the pay stub a moment, then try again if nothing changed."],
+    [/already on its way/i, "That action is already on its way. Give it a moment."],
+    [/fetch failed|NetworkError|Failed to fetch/i, "Couldn't reach Till's server. Check your connection and try again."],
   ];
   for (const [re, words] of known) if (re.test(msg)) return words;
   return msg.length < 160 ? msg : "Monad didn't accept that. Try again in a moment.";

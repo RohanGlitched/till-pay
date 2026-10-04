@@ -29,8 +29,13 @@ export async function GET() {
       earned += earnedAt(v.tab, now);
     }
     const open = tabs.filter((v) => !v.tab.closed);
-    // Feature the running tab that has been going longest, so the hero has a story behind it.
-    const featured = [...running].sort((a, b) => Number(a.tab.since - b.tab.since))[0] ?? open.at(-1) ?? null;
+    // Feature the running tab that has been going longest, so the hero has a story behind it. Between
+    // shifts, show the tab that changed most recently and has a freelancer on it (never an unclaimed invite).
+    const featured =
+      [...running].sort((a, b) => Number(a.tab.since - b.tab.since))[0] ??
+      [...open].filter((v) => !/^0x0+$/.test(v.tab.payee)).sort((a, b) => Number(b.tab.lastBlock - a.tab.lastBlock))[0] ??
+      open.at(-1) ??
+      null;
 
     // Latest payouts: the most recently active tabs, one exact-block log query each.
     const recentTabs = [...tabs].sort((a, b) => Number(b.tab.lastBlock - a.tab.lastBlock)).slice(0, 6);

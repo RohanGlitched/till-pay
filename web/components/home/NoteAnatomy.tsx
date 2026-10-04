@@ -14,11 +14,11 @@ const PARTS = [
   { key: "amount", x: 66, y: 34, title: "Value", body: "What's been earned so far, in the freelancer's own currency, rolling every second." },
   { key: "ink", x: 3, y: 60, title: "Ink", body: "Each currency prints in its own colour, the way each denomination does." },
   { key: "micro", x: 40, y: 89.5, title: "Microprint", body: "Both names and the serial, repeated too small to read without a closer look." },
-  { key: "block", x: 63, y: 81, title: "Block", body: "The Monad block the note was last read at, ticking about two and a half times a second." },
+  { key: "block", x: 63, y: 81, title: "Block", body: "The Monad block the note was last read at, ticking several times a second." },
 ];
 
 export function NoteAnatomy() {
-  const { rates } = useLive();
+  const { rates, head } = useLive();
   const [active, setActive] = useState<string | null>(null);
   const [minutes, setMinutes] = useState(17.4);
   // A slow, honest specimen: the amount moves at the stated rate so the parts can be seen working.
@@ -42,7 +42,7 @@ export function NoteAnatomy() {
           hours={minutes / 60}
           live
           status={`On the clock for ${Math.floor(minutes)} min`}
-          serialLine="block 68,094,311, paid 2 seconds ago"
+          serialLine={`block ${head ? head.number.toLocaleString("en-US") : "…"}, paid moments ago`}
         />
         {PARTS.map((p) => (
           <span

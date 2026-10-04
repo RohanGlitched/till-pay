@@ -162,12 +162,13 @@ export function Note(p: NoteProps) {
               p.lines.main
             ) : (
               <>
-                Paid to <b>{p.payee.name}</b>, {p.payee.place}
+                Paid to <b>{p.payee.name}</b>
+                {p.payee.place ? `, ${p.payee.place}` : ""}
               </>
             )}
           </span>
           <span className={`${styles.who} ${styles.extra}`}>
-            {p.lines ? p.lines.extra : `by ${p.payer.name}, ${p.payer.place}, at ${formatUsd(p.rateUsd)} an hour`}
+            {p.lines ? p.lines.extra : [`by ${p.payer.name}`, p.payer.place, `at ${formatUsd(p.rateUsd)} an hour`].filter(Boolean).join(", ")}
           </span>
         </div>
         <div className={styles.foot}>

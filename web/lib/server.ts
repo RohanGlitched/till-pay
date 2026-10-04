@@ -22,27 +22,43 @@ export function signer(kind: "keeper" | "faucet") {
 
 type Client = ReturnType<typeof signer>;
 
+/** Within one server instance, a signer sends one transaction at a time, so its nonces never collide. */
+const queues = new Map<string, Promise<unknown>>();
+function serialised<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const prev = queues.get(key) ?? Promise.resolve();
+  const next = prev.catch(() => {}).then(fn);
+  queues.set(key, next);
+  next.finally(() => queues.get(key) === next && queues.delete(key)).catch(() => {});
+  return next;
+}
+
 /**
  * Sends a transaction and waits for its receipt. Monad charges for the gas limit, not gas used, and
  * prices storage differently from Ethereum, so the limit is the chain's own estimate plus 15%.
- * A nonce race between two serverless instances is retried once with a fresh nonce.
+ * Sends from one signer are serialised per instance; a nonce race with another instance is retried
+ * with a fresh nonce and a little jitter.
  */
-export async function sendAndWait(client: Client, tx: { to: Address; data: Hex; minGas?: bigint }) {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const est = await publicClient.estimateGas({ account: client.account.address, to: tx.to, data: tx.data });
-      const gas = (est * 115n) / 100n > (tx.minGas ?? 0n) ? (est * 115n) / 100n : tx.minGas!;
-      const nonce = await publicClient.getTransactionCount({ address: client.account.address, blockTag: "pending" });
-      const hash = await client.sendTransaction({ to: tx.to, data: tx.data, gas, nonce, account: client.account, chain: monadTestnet });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash, pollingInterval: 150, timeout: 30_000 });
-      if (receipt.status !== "success") throw new Error("Monad rejected the transaction.");
-      return { hash, block: Number(receipt.blockNumber) };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (attempt === 0 && /nonce|replacement|already known/i.test(msg)) continue;
-      throw e;
+export function sendAndWait(client: Client, tx: { to: Address; data: Hex; minGas?: bigint }) {
+  return serialised(client.account.address, async () => {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const est = await publicClient.estimateGas({ account: client.account.address, to: tx.to, data: tx.data });
+        const gas = (est * 115n) / 100n > (tx.minGas ?? 0n) ? (est * 115n) / 100n : tx.minGas!;
+        const nonce = await publicClient.getTransactionCount({ address: client.account.address, blockTag: "pending" });
+        const hash = await client.sendTransaction({ to: tx.to, data: tx.data, gas, nonce, account: client.account, chain: monadTestnet });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash, pollingInterval: 150, timeout: 30_000 });
+        if (receipt.status !== "success") throw new Error("Monad rejected the transaction.");
+        return { hash, block: Number(receipt.blockNumber), logs: receipt.logs };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (attempt < 3 && /nonce|replacement|already known/i.test(msg)) {
+          await new Promise((r) => setTimeout(r, 150 + Math.random() * 400));
+          continue;
+        }
+        throw e;
+      }
     }
-  }
+  });
 }
 
 /** Pulls Till's custom error name out of a failed simulation so the app can explain it. */
@@ -63,8 +79,14 @@ export function revertReason(e: unknown): string {
 
 /** Very small in-memory limiter per serverless instance; enough to stop a runaway loop on testnet. */
 const hits = new Map<string, number[]>();
+let lastPrune = 0;
 export function limited(key: string, max: number, windowMs: number): boolean {
   const now = Date.now();
+  if (now - lastPrune > 60_000) {
+    // Forget keys that have gone quiet, so a stream of fresh signers can't grow the map without end.
+    lastPrune = now;
+    for (const [k, list] of hits) if (now - (list.at(-1) ?? 0) > 3_600_000) hits.delete(k);
+  }
   const list = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
   if (list.length >= max) {
     hits.set(key, list);
@@ -74,6 +96,12 @@ export function limited(key: string, max: number, windowMs: number): boolean {
   hits.set(key, list);
   return false;
 }
+
+/** The caller's address as the platform saw it (Vercel sets x-real-ip; the first forwarded hop is the fallback). */
+export const clientIp = (req: Request) => req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "?";
+
+/** The smallest tab budget or top-up the relayer will pay gas for: half a test dollar. */
+export const MIN_BUDGET = 500_000n;
 
 export const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body, (_, v) => (typeof v === "bigint" ? v.toString() : v)), {

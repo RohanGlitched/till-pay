@@ -242,7 +242,7 @@ export default function Home() {
                   <b>Your money, your currency.</b> See every second of pay in rupees, pesos, naira or shillings.
                 </li>
                 <li>
-                  <b>Nothing to set up.</b> Sign in with your email; there&apos;s no wallet app and no gas.
+                  <b>Nothing to set up.</b> Sign in with a passkey or your email; there&apos;s no wallet app and no gas.
                 </li>
               </ul>
             </div>

@@ -58,17 +58,21 @@ const dollarAbi = parseAbi([
   "function transferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce,uint8 v,bytes32 r,bytes32 s)",
 ]);
 
-// UTC offsets are fixed here; good enough to keep each person to plausible local hours.
+// UTC offsets are fixed here; good enough to keep each person to plausible local hours. Shifts are
+// local hours [start, end); together the five cover every hour of the UTC day, so the site always
+// has someone on the clock whatever time a judge opens it (Lucas edits video into the evening,
+// Ana starts early).
+const DAY = [[9, 12], [14, 18]];
 const CLIENTS = [
   { key: "bot1", name: "Northwind Studio", place: "Berlin", cur: "EUR" },
   { key: "bot2", name: "Lumen Labs", place: "Austin", cur: "USD" },
   { key: "bot3", name: "Kite & Co", place: "Singapore", cur: "SGD" },
 ];
 const FREELANCERS = [
-  { key: "bot4", name: "Ana Reyes", place: "Manila", cur: "PHP", utc: 8, client: "bot1", rate: 32, memo: "Brand system for autumn launch" },
+  { key: "bot4", name: "Ana Reyes", place: "Manila", cur: "PHP", utc: 8, client: "bot1", rate: 32, memo: "Brand system for autumn launch", shifts: [[8.5, 12], [14, 18]] },
   { key: "bot5", name: "Tunde Bakare", place: "Lagos", cur: "NGN", utc: 1, client: "bot2", rate: 45, memo: "Payments API integration" },
   { key: "bot6", name: "Priya Nair", place: "Pune", cur: "INR", utc: 5.5, client: "bot1", rate: 28, memo: "Illustrations for the help centre" },
-  { key: "bot7", name: "Lucas Almeida", place: "São Paulo", cur: "BRL", utc: -3, client: "bot3", rate: 30, memo: "Product launch video" },
+  { key: "bot7", name: "Lucas Almeida", place: "São Paulo", cur: "BRL", utc: -3, client: "bot3", rate: 30, memo: "Product launch video", shifts: [[9, 12], [14, 22]] },
   { key: "bot8", name: "Wanjiru Kamau", place: "Nairobi", cur: "KES", utc: 3, client: "bot2", rate: 26, memo: "Website copy, five pages" },
 ];
 const acct = (k) => privateKeyToAccount(keys[k].privateKey);
@@ -157,7 +161,7 @@ const usdcOf = (a) => pub.readContract({ address: DOLLAR, abi: dollarAbi, functi
 function onShift(f, now = new Date()) {
   const localMin = (now.getUTCHours() * 60 + now.getUTCMinutes() + f.utc * 60 + 1440) % 1440;
   if (process.env.ALWAYS_ON) return true;
-  return (localMin >= 9 * 60 && localMin < 12 * 60) || (localMin >= 14 * 60 && localMin < 18 * 60);
+  return (f.shifts || DAY).some(([a, b]) => localMin >= a * 60 && localMin < b * 60);
 }
 
 async function ensureProfiles() {
@@ -189,25 +193,60 @@ let lastSettle = SETTLE_STAMP && fs.existsSync(SETTLE_STAMP) ? Number(fs.readFil
 
 async function tick() {
   const now = Math.floor(Date.now() / 1000);
-  const running = [];
+  const due = new Map();
   for (const f of FREELANCERS) {
+    // One person's failed step (a dropped RPC call, a reverted clock-in) must not stop the others.
+    try {
+      await person(f, now, due);
+    } catch (e) {
+      log(`${f.name}:`, e.shortMessage || e.message);
+    }
+  }
+
+  if (Date.now() - lastSettle > SETTLE_EVERY_MS) {
+    const ids = [...due.keys()];
+    if (ids.length) {
+      try {
+        await sendFromKeeper(TILL, encodeFunctionData({ abi: tillAbi, functionName: "settleMany", args: [ids] }));
+        log(`settled ${ids.length} tabs`);
+      } catch (e) {
+        // One tab that can't be paid (say a frozen AUSD account) must not hold up the others.
+        log("batch settle failed, settling one by one:", e.shortMessage || e.message);
+        for (const id of ids) {
+          await sendFromKeeper(TILL, encodeFunctionData({ abi: tillAbi, functionName: "settle", args: [id] })).catch((err) => log(`settle ${id}:`, err.shortMessage || err.message));
+        }
+      }
+    }
+    lastSettle = Date.now();
+    if (SETTLE_STAMP) fs.writeFileSync(SETTLE_STAMP, String(lastSettle));
+  }
+}
+
+async function person(f, now, due) {
+  {
     const me = acct(f.key).address;
     const ids = await pub.readContract({ address: TILL, abi: tillAbi, functionName: "tabsOf", args: [me] });
-    const views = ids.length ? await pub.readContract({ address: TILL, abi: tillAbi, functionName: "getTabs", args: [ids] }) : [];
+    const views = [];
+    for (let i = 0; i < ids.length; i += 80) views.push(...(await pub.readContract({ address: TILL, abi: tillAbi, functionName: "getTabs", args: [ids.slice(i, i + 80)] })));
     let ownTab = null;
+    let newClockIns = 0;
     for (const v of views) {
       const t = v.tab;
       if (t.closed || t.payee.toLowerCase() !== me.toLowerCase()) continue;
       const spent = v.earned >= t.budget;
       const fromBot = BOT_ADDRS.has(t.payer.toLowerCase());
       if (fromBot && t.payer.toLowerCase() === acct(f.client).address.toLowerCase()) ownTab = v;
-      if (t.since > 0n && !spent) running.push(v);
+      // Anything owed on an open tab gets paid at the next settle, including the last cents of a
+      // tab whose budget ran out or whose clock stopped.
+      if (v.owed > 50_000n) due.set(v.id, true);
       if (!fromBot) {
         // Hired by someone else (a judge): clock in straight away and work until the budget runs out
         // or 45 minutes pass, whichever comes first.
         if (t.since === 0n && !t.held && !spent) {
           const worked = Number(t.banked) * 3600 / Math.max(1, Number(t.rate));
-          if (worked < 45 * 60) {
+          // Dust tabs cost the relayer three transactions each; a demo freelancer only takes real ones, a few per tick.
+          if (worked < 45 * 60 && t.budget >= 500_000n && newClockIns < 3) {
+            newClockIns++;
             await forward(f.key, "clockIn", [v.id]);
             log(`${f.name} clocked in on tab ${v.id} for a new client`);
           }
@@ -222,11 +261,11 @@ async function tick() {
     const client = CLIENTS.find((c) => c.key === f.client);
     if (!ownTab) {
       const budget = BUDGET;
-      if ((await usdcOf(acct(client.key).address)) < budget) continue;
+      if ((await usdcOf(acct(client.key).address)) < budget) return;
       const p = await permit(client.key, budget);
       await forward(client.key, "openWithPermit", [me, "0x0000000000000000000000000000000000000000", BigInt(f.rate * 1e6), budget, f.memo, p.deadline, p.v, p.r, p.s]);
       log(`${client.name} opened a tab for ${f.name}`);
-      continue;
+      return;
     }
     const t = ownTab.tab;
     const left = t.budget - ownTab.earned;
@@ -254,17 +293,6 @@ async function tick() {
       log(`${f.name} sent ${(Number(earnedBal - 1_000_000n) / 1e6).toFixed(2)} AUSD back to ${client.name}`);
     }
   }
-
-  if (Date.now() - lastSettle > SETTLE_EVERY_MS) {
-    const due = running.filter((v) => v.owed > 50_000n).map((v) => v.id);
-    if (due.length) {
-      const data = encodeFunctionData({ abi: tillAbi, functionName: "settleMany", args: [due] });
-      await sendFromKeeper(TILL, data);
-      log(`settled ${due.length} running tabs`);
-    }
-    lastSettle = Date.now();
-    if (SETTLE_STAMP) fs.writeFileSync(SETTLE_STAMP, String(lastSettle));
-  }
 }
 
 async function main() {
@@ -273,12 +301,9 @@ async function main() {
   if (!process.env.SKIP_PROFILES) await ensureProfiles().catch((e) => log("profiles:", e.shortMessage || e.message));
   for (;;) {
     if (RUN_FOR_MS && Date.now() - STARTED > RUN_FOR_MS) return;
-    try {
-      await ensureClientFunds();
-      await tick();
-    } catch (e) {
-      log("error:", e.shortMessage || e.message);
-    }
+    // Funding and the tick fail separately: a faucet cooldown must never stop clock-outs and settles.
+    await ensureClientFunds().catch((e) => log("funding:", e.shortMessage || e.message));
+    await tick().catch((e) => log("error:", e.shortMessage || e.message));
     await new Promise((r) => setTimeout(r, TICK_MS));
   }
 }

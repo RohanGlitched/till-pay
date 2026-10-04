@@ -36,10 +36,25 @@ export default function Join() {
   useEffect(() => {
     const m = window.location.hash.match(/k=([0-9a-fA-F]{64})/);
     setKey(m ? (`0x${m[1]}` as Hex) : null);
-    // Guess the currency from the browser's region; people can change it.
-    const region = navigator.language.split("-")[1];
-    const guess: Record<string, string> = { IN: "INR", PH: "PHP", NG: "NGN", BR: "BRL", KE: "KES", PK: "PKR", ID: "IDR", MX: "MXN", GB: "GBP", SG: "SGD", DE: "EUR", FR: "EUR", ES: "EUR", IT: "EUR", NL: "EUR" };
-    if (region && guess[region]) setCur(guess[region]);
+    // Guess the currency from the device's time zone (a language tag like en-GB says little about where someone lives); people can change it.
+    try {
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      const byZone: [RegExp, string][] = [
+        [/^Asia\/(Kolkata|Calcutta)/, "INR"],
+        [/^Asia\/Manila/, "PHP"],
+        [/^Africa\/Lagos/, "NGN"],
+        [/^America\/(Sao_Paulo|Bahia|Fortaleza|Recife|Manaus|Belem)/, "BRL"],
+        [/^Africa\/Nairobi/, "KES"],
+        [/^Asia\/Karachi/, "PKR"],
+        [/^Asia\/(Jakarta|Makassar|Jayapura)/, "IDR"],
+        [/^America\/(Mexico_City|Cancun|Monterrey|Tijuana|Merida|Chihuahua)/, "MXN"],
+        [/^Europe\/London/, "GBP"],
+        [/^Asia\/Singapore/, "SGD"],
+        [/^Europe\//, "EUR"],
+      ];
+      const hit = byZone.find(([re]) => re.test(zone));
+      if (hit) setCur(hit[1]);
+    } catch {}
   }, []);
   useEffect(() => {
     if (mine?.name) {
@@ -56,12 +71,12 @@ export default function Join() {
   if (!id) return <Shell>That isn&apos;t an invite link.</Shell>;
   if (!views) return <Shell busy />;
   if (!t || isZero(t.payer)) return <Shell>This tab doesn&apos;t exist. Check the link with the person who sent it.</Shell>;
-  if (t.closed) return <Shell>The client closed this tab before anyone joined.</Shell>;
+  if (t.closed && isZero(t.payee)) return <Shell>The client closed this tab before anyone joined.</Shell>;
   if (!isZero(t.payee))
     return (
       <Shell>
-        Someone has already joined this tab.{" "}
-        {wallet.address?.toLowerCase() === t.payee.toLowerCase() ? <Link href={`/tab/${id}`}>It&apos;s you: open it</Link> : "Ask the client for a new link."}
+        {t.closed ? "This tab has already been worked and closed." : "Someone has already joined this tab."}{" "}
+        {wallet.address?.toLowerCase() === t.payee.toLowerCase() ? <Link href={`/tab/${id}`}>It&apos;s you: open it</Link> : t.closed ? <Link href={`/tab/${id}`}>See its pay stub</Link> : "Ask the client for a new link."}
       </Shell>
     );
   if (!key) return <Shell>This link is missing its invite code. Copy the whole link again, including the part after #.</Shell>;
@@ -125,7 +140,7 @@ export default function Join() {
             <p className="notice">This is your own tab. Send the link to the freelancer and they join from their browser.</p>
           ) : !wallet.address ? (
             <SignInPanel title="Sign in to join">
-              <p>Use your email. Till creates a wallet for you; you never need gas.</p>
+              <p>A passkey or your email is all you need. Till creates a wallet for you; you never need gas.</p>
             </SignInPanel>
           ) : (
             <form

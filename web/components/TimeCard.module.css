@@ -4,9 +4,11 @@
   background: var(--note-paper);
   border: 1px solid var(--rule);
   border-radius: 10px;
+  overflow-x: auto;
 }
 .svg {
   width: 100%;
+  min-width: 620px; /* on a phone the card scrolls sideways rather than shrinking its labels to nothing */
   height: auto;
   display: block;
 }

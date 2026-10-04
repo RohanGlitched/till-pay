@@ -59,10 +59,12 @@ export function TimeCard({ lines, now, earnedUsd, running }: { lines: StubLine[]
   const y = (usd: number) => CH_B - (usd / top) * (CH_B - CH_T);
   const paidPath = paidPts.map(([t, v], i) => `${i ? "L" : "M"}${x(t).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
   const worked = work.reduce((s, [a, b]) => s + (b - a), 0);
+  const workedText = worked < 90 ? `${Math.round(worked)} s` : `${Math.round(worked / 60)} min`;
+  const sessions = `${work.length} ${work.length === 1 ? "session" : "sessions"}`;
 
   return (
     <figure className={styles.card}>
-      <svg viewBox={`0 0 ${W} ${H}`} className={styles.svg} role="img" aria-label={`Time card: ${Math.round(worked / 60)} minutes on the clock across ${work.length} sessions; ${formatUsd(cum, 4)} paid out.`}>
+      <svg viewBox={`0 0 ${W} ${H}`} className={styles.svg} role="img" aria-label={`Time card: ${workedText} on the clock across ${sessions}; ${formatUsd(cum, 4)} paid out.`}>
         <defs>
           <pattern id="tc-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="var(--ink-soft)" strokeWidth="1.2" opacity="0.5" />
@@ -99,7 +101,7 @@ export function TimeCard({ lines, now, earnedUsd, running }: { lines: StubLine[]
         </text>
       </svg>
       <figcaption className={styles.cap}>
-        {Math.max(1, Math.round(worked / 60))} min on the clock across {work.length} {work.length === 1 ? "session" : "sessions"}
+        {workedText} on the clock across {sessions}
         {holds.length ? `, paused ${holds.length} ${holds.length === 1 ? "time" : "times"}` : ""}. Each tick is a payout transaction.
       </figcaption>
     </figure>

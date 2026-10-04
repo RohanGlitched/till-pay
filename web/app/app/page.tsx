@@ -7,7 +7,7 @@ import { ProfileForm } from "@/components/ProfileForm";
 import { TabRow } from "@/components/TabRow";
 import { GettingStarted, Ledger, WalletNote } from "@/components/WalletPanel";
 import { ErrorLine, LandedLine, SignInPanel, busyLabel, useAction } from "@/components/ui";
-import { useMyTabIds, useProfile, useTabs, useUsdcBalance } from "@/lib/hooks";
+import { useAutoDrip, useMyTabIds, useProfile, useTabs, useUsdcBalance } from "@/lib/hooks";
 import { useLive, useChainNow } from "@/lib/live";
 import { currency, formatMoney, formatUsd, toUnits, toUsd } from "@/lib/money";
 import { relay, requestTestUsdc, sendUsdc } from "@/lib/relay";
@@ -25,6 +25,7 @@ export default function YourTabs() {
   const now = useChainNow();
   const act = useAction();
   const faucet = useAction();
+  const drip = useAutoDrip(me, balance, refreshBalance);
   const [sendOpen, setSendOpen] = useState(false);
 
   const mine = useProfile(me);
@@ -100,9 +101,9 @@ export default function YourTabs() {
             <Link href="/open" className="btn primary">
               Open a tab
             </Link>
-            {balance != null && balance > 0n && (
+            {((balance != null && balance > 0n) || sendOpen) && (
               <button className="btn" onClick={() => setSendOpen((o) => !o)} aria-expanded={sendOpen}>
-                Send AUSD to someone
+                {sendOpen ? "Done sending" : "Send AUSD to someone"}
               </button>
             )}
             {lowBalance && hasStarted && (
@@ -116,15 +117,15 @@ export default function YourTabs() {
             hasProfile={!!mine?.name}
             hasTab={(views?.length ?? 0) > 0}
             onFaucet={getUsdc}
-            faucetBusy={faucet.busy}
+            faucetBusy={faucet.busy || drip.sending}
           />
           <Ledger paid={paid} paying={paying} cur={myCur} />
           <div className={styles.walletNotes}>
             <ErrorLine error={faucet.error} />
-            <LandedLine landed={faucet.landed} />
+            <LandedLine landed={faucet.landed ?? drip.landed} />
           </div>
         </div>
-        {sendOpen && <SendForm max={balance ?? 0n} onDone={refreshBalance} />}
+        {sendOpen && <SendForm max={balance ?? 0n} onDone={refreshBalance} onClose={() => setSendOpen(false)} />}
       </section>
 
       <section className={styles.profile} id="profile">
@@ -183,7 +184,7 @@ function RowSkeletons() {
   );
 }
 
-function SendForm({ max, onDone }: { max: bigint; onDone: () => void }) {
+function SendForm({ max, onDone, onClose }: { max: bigint; onDone: () => void; onClose: () => void }) {
   const wallet = useWallet();
   const [to, setTo] = useState("");
   const [amount, setAmount] = useState("");
@@ -193,11 +194,15 @@ function SendForm({ max, onDone }: { max: bigint; onDone: () => void }) {
     ? "Paste the wallet address you want to send to."
     : !isAddress(to)
       ? "That isn't a wallet address. It starts with 0x and has 42 characters."
-      : value <= 0n
-        ? "Enter an amount."
-        : value > max
-          ? `You have ${formatUsd(toUsd(max))}.`
-          : null;
+      : to.toLowerCase() === wallet.address?.toLowerCase()
+        ? "That's your own wallet."
+        : value <= 0n
+          ? "Enter an amount."
+          : value < 10_000n
+            ? "The smallest amount is $0.01."
+            : value > max
+              ? `You have ${formatUsd(toUsd(max))}.`
+              : null;
   useEffect(() => {
     if (act.phase === "done") onDone();
   }, [act.phase, onDone]);
@@ -210,7 +215,11 @@ function SendForm({ max, onDone }: { max: bigint; onDone: () => void }) {
         act.run(`Sent ${formatUsd(Number(amount))}`, async (sent) => {
           const p = sendUsdc(wallet, to as Address, value);
           sent();
-          return p;
+          const r = await p;
+          // A sent form empties itself, so one more click can't send the money twice.
+          setTo("");
+          setAmount("");
+          return r;
         });
       }}
     >
@@ -226,6 +235,9 @@ function SendForm({ max, onDone }: { max: bigint; onDone: () => void }) {
       <div className={styles.sendFoot}>
         <button className="btn primary" disabled={!!problem || act.busy}>
           {busyLabel(act.phase, "Send AUSD")}
+        </button>
+        <button type="button" className="btn quiet" onClick={onClose} disabled={act.busy}>
+          {act.phase === "done" ? "Done" : "Cancel"}
         </button>
         {problem && to && <span className="soft">{problem}</span>}
       </div>

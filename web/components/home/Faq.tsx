@@ -7,7 +7,7 @@ const QA = [
   },
   {
     q: "Do I need a crypto wallet or any MON?",
-    a: "No. Sign in with your email and Till creates a wallet for you. Every action is a signature; Till's relayer submits it and pays the gas.",
+    a: "No. Sign in with a passkey or your email and Till creates a wallet for you. Every action is a signature; Till's relayer submits it and pays the gas.",
   },
   {
     q: "What if the client disappears halfway through?",

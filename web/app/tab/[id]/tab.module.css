@@ -46,6 +46,50 @@
   border: 1px solid var(--rule);
   border-radius: 10px;
 }
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--serial);
+  border-radius: 8px;
+  font-size: 14.5px;
+}
+.confirm > span {
+  flex: 1 1 100%;
+}
+.waiting {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-left: 3px solid var(--serial);
+  padding: 8px 0 8px 14px;
+  font-size: 14.5px;
+  max-width: 62ch;
+}
+.waiting i {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--serial);
+  animation: till-pulse 1.6s ease-in-out infinite;
+}
+@keyframes till-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+}
 .payouts {
   border-left: 3px solid var(--serial);
   padding: 4px 0 4px 14px;

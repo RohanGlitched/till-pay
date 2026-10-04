@@ -74,6 +74,13 @@
   background: var(--ok);
   flex: none;
 }
+@media (max-width: 420px) {
+  .who {
+    padding: 0 9px;
+    gap: 6px;
+    font-size: 13px;
+  }
+}
 @media (max-width: 560px) {
   .link:first-child {
     display: none;

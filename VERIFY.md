@@ -49,7 +49,7 @@ TILL=0xeb6c2c519c9bcc4495364c34ac116c20098113d1 FORWARDER=0xB0Af71Dfb11df900B2B1
 
 ```bash
 cd contracts
-forge test                                                    # 12 tests, fuzz at 1,000 runs
+forge test                                                    # 46 tests: units, edges, a 1,000-run fuzz, stateful invariants
 forge test --match-contract Fork --fork-url monad_testnet     # Agora AUSD (faucet, permit, transferWithAuthorization) on a Monad fork
 ```
 
@@ -64,7 +64,14 @@ forge test --match-contract Fork --fork-url monad_testnet     # Agora AUSD (fauc
 | Many tabs settle in one transaction | `test_settleManyPaysEveryTab` |
 | Gasless open with permit through the forwarder | `test_gaslessOpenWithPermitAndClockIn` |
 | History is walkable block to block | `test_activityChainLinksEveryBlock` |
-| Paid + refunded always equals the budget | `testFuzz_moneyIsConserved` |
+| Paid + refunded always equals the budget | `testFuzz_moneyIsConserved`, `testFuzz_topUpAndSettleConserveMoney` |
+| After any sequence of opens, clocks, holds, rate changes, top-ups, settles and closes: the contract holds exactly what open tabs still owe, freelancers hold exactly what was paid, and pay never goes down | `TillInvariantTest` (2 invariants, 128 runs × depth 100) |
+| Settling a closed tab pays nothing; duplicate and unknown ids in `settleMany` are harmless | `test_settleAfterCloseReturnsZeroAndPaysNothing`, `test_settleManySkipsUnknownIdsAndPaysDuplicatesOnce` |
+| Top-ups never pay for idle time and never change pay retroactively | `test_topUpMidShiftKeepsSince`, `test_topUpExactlyAtExhaustionRestartsShift`, `test_topUpAfterExhaustionDoesNotPayForIdleTime` |
+| The maximum rate for the rest of time cannot overflow | `test_extremeRateNeverOverflows` |
+| The forwarder rejects replays, expired requests and forged senders; a sender suffix is ignored outside the forwarder | `test_forwarderRejectsReplayExpiryAndForgedFrom`, `test_spoofedSenderSuffixIgnoredOutsideForwarder` |
+| A front-run or garbage permit never blocks an open that already has an allowance | `test_frontRunPermitDoesNotBlockOpen`, `test_badPermitFallsBackToAllowance` |
+| What an AUSD account freeze does to a tab (documented in SECURITY.md) | `test_frozenPayeeLocksRefundAndBreaksBatch`, `test_frozenPayerBlocksCloseButNotSettle` |
 
 The web app has an end-to-end test that drives the real UI on the deployed site: faucet, profile, open a tab to a demo freelancer, payouts while watching, pause, close and refund, then an invite joined from a second browser at phone width (`scripts/e2e.cjs`).
 
@@ -75,6 +82,6 @@ The web app has an end-to-end test that drives the real UI on the deployed site:
 | "Pay builds up every second" | `Till._earned`: `banked + (now - since) * rate / 3600`, capped at the budget |
 | "Can only pay you or refund the client" | `Till._settle` pays `payee` only; `Till.close` refunds `payer` only; no owner or admin functions exist |
 | "No gas, one signature" | `web/lib/relay.ts` (EIP-712 forward requests, EIP-2612 permit and EIP-3009 transfers on AUSD), `web/app/api/relay/route.ts` |
-| "Payouts every few seconds while you watch" | `web/app/tab/[id]/page.tsx` calls `/api/settle` every 6 s while the page is visible |
+| "Payouts every few seconds while you watch" | `web/app/tab/[id]/page.tsx` calls `/api/settle` every 6 s for the first two minutes a page is open, then every 20 s, then once a minute; it also settles once when a clock stops |
 | Live numbers on the landing page | `web/app/api/live/route.ts` reads every tab's state from the contract (no indexer) |
 | Pay stub from chain | `web/lib/hooks.ts` `useHistory` walks `Activity(id, prevBlock)` one exact block at a time |

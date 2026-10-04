@@ -66,7 +66,7 @@ sequenceDiagram
 
 1. Open **[till-pay.vercel.app](https://till-pay.vercel.app)** and choose **Open a tab**.
 2. **Create an account with a passkey** (or continue with email, or use a practice wallet). Privy creates a wallet; there's no seed phrase and no gas.
-3. Click **Get 25 test AUSD**.
+3. 25 test AUSD arrive in your new wallet by themselves (there's also a **Get 25 test AUSD** button).
 4. Pick a demo freelancer, say $40 an hour and a $3 budget, and open the tab. They clock in by themselves within seconds; keep the page open and watch payouts land.
 5. Pause pay, top up, or close the tab and see the refund in the pay stub. To be the freelancer, choose **Someone I'll invite by link** and open the link on your phone.
 
@@ -114,7 +114,7 @@ Tabs are funded and paid in [AUSD](https://www.agora.finance), Agora's dollar st
 
 ## Why Monad
 
-- **Pay you can watch arrive.** Blocks every ~0.4 s with fast finality: a payout lands while the freelancer is still looking at the screen. The tab page settles every few seconds and shows how long each payout took (about 0.8 s from a browser in India).
+- **Pay you can watch arrive.** Blocks every ~0.4 s with fast finality: a payout lands while the freelancer is still looking at the screen. The tab page settles every few seconds and shows how long each payout took (about 0.8 s from a browser in India). Every payout is a transaction the relayer pays for, so the pace eases the longer a page stays open, and the last seconds of pay are sent the moment a clock stops.
 - **Built for parallel execution.** Pay accrues from timestamps and each tab keeps its own state. Clocking and settling never write shared storage, so independent tabs never contend; `settleMany` pays many tabs in one transaction.
 - **Monad-aware engineering.** Monad charges the gas *limit*, not gas used, so every transaction (relayer, faucet, bots) is sent with Monad's own gas estimate plus a small margin, never a blanket limit. Public RPCs cap `eth_getLogs` at 100 blocks, so each tab links its changes block to block (`Activity(id, prevBlock)`) and the app reads a full pay stub with one exact-block query per step, with no indexer.
 - **Live from the chain.** The site follows Monad's `newHeads` subscription; the landing page's numbers, world clocks and receipt all come from contract state and exact-block log reads.
@@ -138,13 +138,15 @@ No owner, no admin key, no upgrade path, no fee switch: earned pay can only go t
 | Pay never exceeds the budget | `test_budgetCapsPayAndTopUpRestartsTheShift` |
 | Invite links can't be stolen from the mempool | `test_inviteClaimCannotBeStolen` |
 | Paid + refunded always equals the budget | `testFuzz_moneyIsConserved` (1,000 runs) |
+| Whatever happens in any order, escrow equals what open tabs still hold and pay never goes down | `TillInvariantTest`: 2 stateful invariants over 12,800 random actions |
+| Edge cases hold: top-ups mid-shift and at exhaustion, duplicate settles, extreme rates, issuer freezes, dust tabs | `TillEdges.t.sol`, 32 tests |
 | Fully gasless with an AUSD permit and the forwarder | `test_gaslessOpenWithPermitAndClockIn`, plus a fork test with Agora's real AUSD |
 | Every action works on Monad testnet | [VERIFY.md](VERIFY.md): 17 transactions, one per action, with fresh wallets |
 | The whole UI works on the live site | `scripts/e2e.cjs`: faucet, profile, open, payouts, pause, close, invite on a phone |
 
 ```bash
 cd contracts
-forge test                                                   # 12 tests, fuzz at 1,000 runs
+forge test                                                   # 46 tests: units, edges, a 1,000-run fuzz, stateful invariants
 forge test --match-contract Fork --fork-url monad_testnet    # Agora AUSD on a Monad fork
 ```
 

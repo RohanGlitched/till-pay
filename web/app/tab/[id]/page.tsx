@@ -13,11 +13,25 @@ import { inviteLink, loadInvite } from "@/lib/invite";
 import { useChainNow, useLive } from "@/lib/live";
 import { ago, currency, formatDuration, formatMoney, formatUsd, toUnits, toUsd } from "@/lib/money";
 import { relay, settleNow, signPermit, type Landed } from "@/lib/relay";
+import { DEMO_FREELANCERS } from "@/lib/demo";
 import { earnedAt, isZero, stateOf } from "@/lib/tabs";
 import { useWallet } from "@/lib/wallet";
 import styles from "./tab.module.css";
 
-const AUTO_PAY_MS = 6000;
+/**
+ * How often the page pays out while someone watches a running tab. Every payout is a Monad
+ * transaction the relayer pays gas for, so the pace eases the longer the page stays open.
+ */
+function payEvery(secondsOpen: number) {
+  if (secondsOpen < 120) return 6_000;
+  if (secondsOpen < 600) return 20_000;
+  return 60_000;
+}
+const PACE_WORDS: Record<number, string> = {
+  6_000: "Paying out every few seconds while this page is open.",
+  20_000: "Paying out every 20 seconds while this page stays open.",
+  60_000: "Paying out once a minute while this page stays open. Cash out any time for the rest.",
+};
 
 export default function TabPage() {
   const params = useParams<{ id: string }>();
@@ -37,6 +51,8 @@ export default function TabPage() {
   const [showTopUp, setShowTopUp] = useState(false);
   const { balance } = useUsdcBalance(wallet.address);
   const [invite, setInvite] = useState<string | null>(null);
+  const [pace, setPace] = useState(6_000);
+  const [confirmClose, setConfirmClose] = useState(false);
 
   const t = view?.tab;
   const state = t ? stateOf(t, now) : null;
@@ -57,21 +73,56 @@ export default function TabPage() {
   }, []);
   useEffect(() => {
     if (!id || state !== "working") return;
+    const since = Date.now();
+    let timer: ReturnType<typeof setTimeout>;
     const tick = async () => {
-      if (!watching.current) return;
-      try {
-        const r = await settleNow(id);
-        setPayouts((p) => [{ ...r, amount: toUsd(r.amount) }, ...p].slice(0, 4));
-        refresh();
-      } catch {}
+      const every = payEvery((Date.now() - since) / 1000);
+      setPace(every);
+      if (watching.current) {
+        try {
+          const r = await settleNow(id);
+          setPayouts((p) => [{ ...r, amount: toUsd(r.amount) }, ...p].slice(0, 4));
+          refresh();
+        } catch {}
+      }
+      timer = setTimeout(tick, every);
     };
-    const first = setTimeout(tick, 1500);
-    const timer = setInterval(tick, AUTO_PAY_MS);
-    return () => {
-      clearTimeout(first);
-      clearInterval(timer);
-    };
+    timer = setTimeout(tick, 1500);
+    return () => clearTimeout(timer);
   }, [id, state, refresh]);
+
+  // When the clock stops (clock-out, pause, or the budget running out), the last seconds of pay
+  // are still owed. Send them once, so nobody is left waiting for a payout that never comes.
+  const settledFor = useRef("");
+  const stopKey = (() => {
+    if (!view || !me) return null;
+    const tt = view.tab;
+    const s = stateOf(tt, now);
+    if (s === "working" || s === "closed" || s === "invited") return null;
+    if (me !== tt.payer.toLowerCase() && me !== tt.payee.toLowerCase()) return null;
+    if (earnedAt(tt, now) - tt.paid < 1000n) return null;
+    return `${s}:${tt.paid}`;
+  })();
+  useEffect(() => {
+    if (!id || !stopKey || settledFor.current === stopKey) return;
+    settledFor.current = stopKey;
+    let cancelled = false;
+    // The relayer pays a tab at most once every few blocks, so wait out the block that stopped the clock and try a few times.
+    (async () => {
+      for (const wait of [5000, 6000, 8000]) {
+        await new Promise((r) => setTimeout(r, wait));
+        if (cancelled) return;
+        try {
+          await settleNow(id);
+          refresh();
+          return;
+        } catch {}
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, stopKey, refresh]);
 
   if (!id) return <Missing text="That isn't a tab number." />;
   if (error && !view) return <Missing text={error} />;
@@ -89,6 +140,8 @@ export default function TabPage() {
   const runway = t.rate > 0n ? (Number(remaining) * 3600) / Number(t.rate) : 0;
   const money = (usd: number) => (rates && cur.code !== "USD" ? `${formatMoney(usd, cur, rates)} (${formatUsd(usd, 2)})` : formatUsd(usd, 2));
   const lastPaid = lines?.find((l) => l.kind === "paid");
+  const everClockedIn = !!lines?.some((l) => l.kind === "in");
+  const isDemo = DEMO_FREELANCERS.some((f) => f.address.toLowerCase() === t.payee.toLowerCase());
 
   const go = (what: string, fn: string, args: readonly unknown[]) =>
     act.run(what, async (sent) => {
@@ -98,9 +151,41 @@ export default function TabPage() {
       refresh();
       return r;
     });
+  /** The button that started an action says what it's waiting for; the others just lock. */
+  const label = (what: string, idle: string) => (act.busy && act.which === what ? busyLabel(act.phase, idle) : idle);
+  const closedLine = lines?.find((l) => l.kind === "closed");
+  const closeButton = (idle: string) =>
+    confirmClose ? (
+      <span className={styles.confirm} role="group" aria-label="Confirm closing the tab">
+        <span>Close for good? {iAmPayer ? `${payee.name} keeps what they earned and ${formatUsd(toUsd(remaining > 0n ? remaining : 0n))} comes back to you.` : `You keep what you earned; the rest goes back to ${payer.name}.`}</span>
+        <button
+          className="btn small primary"
+          disabled={act.busy}
+          onClick={() => {
+            setConfirmClose(false);
+            go("Tab closed", "close", [view!.id]);
+          }}
+        >
+          {label("Tab closed", "Yes, close the tab")}
+        </button>
+        <button className="btn small quiet" disabled={act.busy} onClick={() => setConfirmClose(false)}>
+          Keep it open
+        </button>
+      </span>
+    ) : (
+      <button className="btn quiet" disabled={act.busy} onClick={() => setConfirmClose(true)}>
+        {label("Tab closed", idle)}
+      </button>
+    );
 
   const topUpUnits = Number(topUp) > 0 ? toUnits(Number(topUp)) : 0n;
-  const topUpProblem = !(Number(topUp) > 0) ? "Enter an amount." : balance != null && topUpUnits > balance ? "That's more than your wallet holds." : null;
+  const topUpProblem = !(Number(topUp) > 0)
+    ? "Enter an amount."
+    : Number(topUp) < 0.5
+      ? "The smallest top-up is $0.50."
+      : balance != null && topUpUnits > balance
+        ? "That's more than your wallet holds."
+        : null;
 
   return (
     <main className={`wrap ${styles.page}`}>
@@ -131,12 +216,12 @@ export default function TabPage() {
               <div className={styles.buttons}>
                 {state === "idle" && (
                   <button className="btn live" disabled={act.busy} onClick={() => go("Clocked in", "clockIn", [view!.id])}>
-                    {busyLabel(act.phase, "Clock in")}
+                    {label("Clocked in", "Clock in")}
                   </button>
                 )}
                 {state === "working" && (
                   <button className="btn primary" disabled={act.busy} onClick={() => go("Clocked out", "clockOut", [view!.id])}>
-                    {busyLabel(act.phase, "Clock out")}
+                    {label("Clocked out", "Clock out")}
                   </button>
                 )}
                 {owed > 1000n && (
@@ -152,15 +237,16 @@ export default function TabPage() {
                       })
                     }
                   >
-                    Cash out {formatUsd(toUsd(owed), 2)} now
+                    {act.busy && act.which?.startsWith("Cashed out") ? busyLabel(act.phase, "Cash out") : `Cash out ${formatUsd(toUsd(owed), 2)} now`}
                   </button>
                 )}
-                {state !== "closed" && (
-                  <button className="btn quiet" disabled={act.busy} onClick={() => go("Tab closed", "close", [view!.id])}>
-                    Close tab
-                  </button>
-                )}
+                {state !== "closed" && closeButton("Close tab")}
               </div>
+              {state === "closed" && (
+                <p className="soft">
+                  This tab is closed. You were paid {money(toUsd(t.paid))} in all{closedLine?.amount != null ? `, and ${formatUsd(toUsd(closedLine.amount))} went back to ${payer.name}` : ""}.
+                </p>
+              )}
               {state === "paused" && <p className="notice">{payer.name} has paused pay. You can clock in again when they resume it.</p>}
               {state === "spent" && <p className="notice">The budget is used up. {payer.name} can top it up to keep the clock running.</p>}
             </>
@@ -168,17 +254,28 @@ export default function TabPage() {
 
           {iAmPayer && (
             <>
-              <h2>You&apos;re paying {payee.name}</h2>
+              <h2>{state === "closed" ? `You paid ${payee.name}` : `You're paying ${payee.name}`}</h2>
               {state === "invited" && (invite ? <InviteBox link={invite} /> : <p className="notice">The invite link was made in another browser. Open it there, or close this tab to get the budget back.</p>)}
+              {state === "idle" && lines != null && !everClockedIn && (
+                <p className={styles.waiting} role="status">
+                  <i aria-hidden />
+                  {isDemo
+                    ? `${payee.name.split(" ")[0]} clocks in by themselves, usually within a minute. The note starts printing the moment they do.`
+                    : `Waiting for ${payee.name} to clock in. They do it from their Till account; the note starts printing the moment they do.`}
+                </p>
+              )}
+              {state === "idle" && everClockedIn && isDemo && (
+                <p className="soft">{payee.name.split(" ")[0]} has clocked out for now. Demo freelancers work up to 45 minutes on a tab; top up or close it whenever you like.</p>
+              )}
               <div className={styles.buttons}>
                 {(state === "working" || state === "idle") && (
                   <button className="btn" disabled={act.busy} onClick={() => go("Pay paused", "hold", [view!.id, true])}>
-                    Pause pay
+                    {label("Pay paused", "Pause pay")}
                   </button>
                 )}
                 {state === "paused" && (
                   <button className="btn primary" disabled={act.busy} onClick={() => go("Pay resumed", "hold", [view!.id, false])}>
-                    Resume pay
+                    {label("Pay resumed", "Resume pay")}
                   </button>
                 )}
                 {state !== "closed" && (
@@ -186,12 +283,13 @@ export default function TabPage() {
                     Top up
                   </button>
                 )}
-                {state !== "closed" && (
-                  <button className="btn quiet" disabled={act.busy} onClick={() => go("Tab closed", "close", [view!.id])}>
-                    Close and get {formatUsd(toUsd(remaining > 0n ? remaining : 0n))} back
-                  </button>
-                )}
+                {state !== "closed" && closeButton(`Close and get ${formatUsd(toUsd(remaining > 0n ? remaining : 0n))} back`)}
               </div>
+              {state === "closed" && (
+                <p className="soft">
+                  This tab is closed. {payee.name} was paid {money(toUsd(t.paid))} in all{closedLine?.amount != null ? `, and ${formatUsd(toUsd(closedLine.amount))} came back to you` : ""}.
+                </p>
+              )}
               {showTopUp && (
                 <form
                   className={styles.topup}
@@ -216,7 +314,7 @@ export default function TabPage() {
                     <span className="hint">Wallet: {balance == null ? "…" : formatUsd(toUsd(balance))}</span>
                   </div>
                   <button className="btn primary" disabled={!!topUpProblem || act.busy}>
-                    {busyLabel(act.phase, "Add to budget")}
+                    {act.busy && act.which?.startsWith("Topped up") ? busyLabel(act.phase, "Add to budget") : "Add to budget"}
                   </button>
                 </form>
               )}
@@ -243,7 +341,7 @@ export default function TabPage() {
 
           {state === "working" && (
             <div className={styles.payouts} aria-live="polite">
-              <p className={styles.payoutsHead}>Paying out every few seconds while this page is open.</p>
+              <p className={styles.payoutsHead}>{PACE_WORDS[pace] ?? PACE_WORDS[6_000]}</p>
               {payouts.length === 0 ? (
                 <p className="soft">First payout in a moment…</p>
               ) : (
