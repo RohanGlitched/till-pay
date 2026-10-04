@@ -76,7 +76,7 @@ export default function Home() {
                 See your tabs
               </Link>
             </div>
-            <p className={styles.note}>Sign in with your email. No wallet app, no seed phrase, no gas. Test AUSD is one click away.</p>
+            <p className={styles.note}>Sign up with a passkey or your email. No wallet app, no seed phrase, no gas. Test AUSD is one click away.</p>
           </div>
         </section>
 

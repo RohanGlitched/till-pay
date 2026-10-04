@@ -44,7 +44,7 @@ function Dial({ h, m, ink, working }: { h: number; m: number; ink: string; worki
     <svg viewBox="0 0 100 100" className={styles.dial} aria-hidden>
       <circle cx="50" cy="50" r="44" fill="none" stroke="var(--rule)" strokeWidth="1" />
       <path d={arc(18, 30, 39)} fill="none" stroke="var(--ink)" strokeOpacity="0.16" strokeWidth="7" />
-      <path d={arc(7, 22, 46.5)} fill="none" stroke="var(--serial)" strokeWidth="2" strokeOpacity={working ? 1 : 0.4} />
+      <path d={arc(9, 18, 46.5)} fill="none" stroke="var(--serial)" strokeWidth="2" strokeOpacity={working ? 1 : 0.4} />
       {Array.from({ length: 24 }, (_, i) => {
         const a = (i / 24) * Math.PI * 2 - Math.PI / 2;
         const r0 = i % 6 === 0 ? 30 : 33;
@@ -79,7 +79,7 @@ export function WorldClock() {
         const working = state === "working";
         const usd = tab ? toUsd(earnedAt(tab.tab, chainNow)) : 0;
         const payer = tab ? net?.profiles[tab.tab.payer.toLowerCase()] : undefined;
-        const status = working ? "On the clock" : t.h >= 7 && t.h < 22 ? "Between sessions" : "Off for the night";
+        const status = working ? "On the clock" : t.h >= 9 && t.h < 18 ? "Between sessions" : "Off for the day";
         const body = (
           <>
             <Dial h={t.h} m={t.m} ink={cur.ink} working={working} />

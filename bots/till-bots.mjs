@@ -18,17 +18,16 @@ const DOLLAR = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC"; // Agora AUSD on Mo
 const AGORA_FAUCET = "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C";
 const keys = JSON.parse(fs.readFileSync(process.env.KEYS || "keys/wallets.json", "utf8"));
 const TICK_MS = Number(process.env.TICK_MS || 4000);
-const SETTLE_EVERY_MS = Number(process.env.SETTLE_EVERY_MS || 600_000);
+const SETTLE_EVERY_MS = Number(process.env.SETTLE_EVERY_MS || 1_200_000);
 // When run from cron each minute, exit before the next run starts (cron + flock restart it).
 const RUN_FOR_MS = Number(process.env.RUN_FOR_MS || 0);
 // MON is the scarce resource on testnet, so the seeded tabs run lean on transactions: large budgets,
-// short sessions, and a settle every ten minutes.
+// two work blocks a day, and a settle every twenty minutes.
 const usd = (n) => BigInt(Math.round(n * 1e6));
 // AUSD comes from Agora's on-chain faucet, so studios fund themselves and budgets can be realistic.
 const BUDGET = usd(Number(process.env.BUDGET || 40));
 const TOPUP = usd(Number(process.env.TOPUP || 40));
 const RECYCLE_ABOVE = usd(Number(process.env.RECYCLE_ABOVE || 1_000_000));
-const WORK_MIN = Number(process.env.WORK_MIN || 24);
 const STARTED = Date.now();
 
 const chain = defineChain({ id: 10143, name: "Monad Testnet", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
@@ -152,14 +151,13 @@ async function recycle(fromKey, toKey, value) {
 const usdcOf = (a) => pub.readContract({ address: DOLLAR, abi: dollarAbi, functionName: "balanceOf", args: [a] });
 
 /**
- * Is this freelancer in a work session? Local 07:00 to 22:00, WORK_MIN minutes in each hour, with
- * sessions staggered between people so someone is always on the clock somewhere.
+ * Is this freelancer at work? Two blocks a day in their own time zone, 09:00 to 12:00 and 14:00 to
+ * 18:00, like a real working day. Few clock-ins keep the relayer's MON use low.
  */
 function onShift(f, now = new Date()) {
   const localMin = (now.getUTCHours() * 60 + now.getUTCMinutes() + f.utc * 60 + 1440) % 1440;
-  const slot = (now.getUTCMinutes() + FREELANCERS.indexOf(f) * 12) % 60;
-  if (process.env.ALWAYS_ON) return slot < 52;
-  return localMin >= 7 * 60 && localMin < 22 * 60 && slot < WORK_MIN;
+  if (process.env.ALWAYS_ON) return true;
+  return (localMin >= 9 * 60 && localMin < 12 * 60) || (localMin >= 14 * 60 && localMin < 18 * 60);
 }
 
 async function ensureProfiles() {
