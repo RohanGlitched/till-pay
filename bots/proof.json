@@ -1,0 +1,135 @@
+{
+  "tab": 4,
+  "client": "0xe5F9F03F87a226e50016578708B646A4C5D397ce",
+  "freelancer": "0x4E6e8C8fbA00Bd2C78FC85415F686845e2072cAc",
+  "paid": 0.36,
+  "refunded": 1.14,
+  "steps": [
+    {
+      "what": "Fund a fresh client with 1.50 test USDC",
+      "hash": "0x91bcf731211e6873b5c5d815c1a5692114a50297445e2f611199fdbf3d1208a5",
+      "block": 68095311,
+      "ms": 2575,
+      "gasUsed": 115579
+    },
+    {
+      "what": "Client sets a profile (gasless)",
+      "hash": "0xc08e8009fa78a7a0a255784aaad429aa9723c8586f0da7f0d99fe8d01fdbe013",
+      "block": 68095321,
+      "ms": 1572,
+      "gasUsed": 168683
+    },
+    {
+      "what": "Freelancer sets a profile (gasless)",
+      "hash": "0x0836a2c1c9571bbb1043139feaae6cd7cc2f030c7b3e4f5e711eb8ac4a8ce3e8",
+      "block": 68095328,
+      "ms": 1584,
+      "gasUsed": 168586
+    },
+    {
+      "what": "Open a tab by invite, $36/h, $1 budget (permit)",
+      "hash": "0x6f41a3d5d157c215ddbed9e6adca7acfc644bd07403ae2595327ca8eead80d30",
+      "block": 68095337,
+      "ms": 1551,
+      "gasUsed": 426868
+    },
+    {
+      "what": "Freelancer claims the invite",
+      "hash": "0x7ba3f7faca737b402b666cca08ceca9dd22ce4e1d0c1e4ca4db42aede1889028",
+      "block": 68095346,
+      "ms": 1542,
+      "gasUsed": 182632
+    },
+    {
+      "what": "Freelancer clocks in",
+      "hash": "0x89aeadffa56ba3d153cbe4552b0ab41936fbf7667e58760c4871bf04fdc3ee94",
+      "block": 68095353,
+      "ms": 2268,
+      "gasUsed": 88168
+    },
+    {
+      "what": "Payout 1 while working (anyone can settle)",
+      "hash": "0x51e02193882ad335be06553034cd7442032d55eb6aa408c32ea86378829f5933",
+      "block": 68095382,
+      "ms": 3585,
+      "gasUsed": 168065
+    },
+    {
+      "what": "Payout 2 while working (anyone can settle)",
+      "hash": "0xcb422e9d62a56ae88efc77986f2a689b45ed7dbafe50a91b6ec7db4dd79f57bc",
+      "block": 68095411,
+      "ms": 3020,
+      "gasUsed": 128810
+    },
+    {
+      "what": "Payout 3 while working (anyone can settle)",
+      "hash": "0x7aaa94d38f0fbce3fb7d7a49f5c569364e772d657fce5e7aa91dc789a2567fe0",
+      "block": 68095439,
+      "ms": 2520,
+      "gasUsed": 128810
+    },
+    {
+      "what": "Client pauses pay (stops the clock)",
+      "hash": "0xbf5ebefca555308824c2a3f769817c3955c6c1553a450fcdcd3b9176b905b58d",
+      "block": 68095447,
+      "ms": 755,
+      "gasUsed": 91753
+    },
+    {
+      "what": "Client tops up $0.50 (permit)",
+      "hash": "0xc5503d218213dba1c4b70a5644707f18e001728f6006f7df5d6107097c763069",
+      "block": 68095455,
+      "ms": 1158,
+      "gasUsed": 260565
+    },
+    {
+      "what": "Client resumes pay",
+      "hash": "0xe1bbd655b4ee223530ee91a6b4a8079f8c4a6146a38427831d4265e2c8b5a2da",
+      "block": 68095461,
+      "ms": 1932,
+      "gasUsed": 87258
+    },
+    {
+      "what": "Freelancer clocks in again",
+      "hash": "0x4e9f776710e81f19f206ecf82d88b1e003a3cb0efdf31a0e267b89e43b13eeb5",
+      "block": 68095469,
+      "ms": 766,
+      "gasUsed": 88168
+    },
+    {
+      "what": "Freelancer clocks out",
+      "hash": "0x821ed1b4e960eb0fca0c426b582904f1d5fb26c239a99d1ea9839c6fcf8a5269",
+      "block": 68095496,
+      "ms": 1026,
+      "gasUsed": 89328
+    },
+    {
+      "what": "Final payout",
+      "hash": "0x3011dd6a630759be90c1599f70f8e54723c3c061ccd67b301e41d9a348eaa147",
+      "block": 68095500,
+      "ms": 1679,
+      "gasUsed": 128154
+    },
+    {
+      "what": "Freelancer cashes out $0.3600 (EIP-3009)",
+      "hash": "0xb16f5635f32a405c9c2448f07366f38fab5b4799ad4b1a3c0e737beec0170c7b",
+      "block": 68095507,
+      "ms": 1312,
+      "gasUsed": 169412
+    },
+    {
+      "what": "Client closes the tab; unspent budget refunded",
+      "hash": "0x6aa102003a3716644e0a6ce8331c10c44856a4d1026befb2325358b926d11618",
+      "block": 68095514,
+      "ms": 1350,
+      "gasUsed": 193356
+    },
+    {
+      "what": "Client's refund returned to the faucet",
+      "hash": "0x7a2b7e8d651b1fba2493cd9fdeb6af9c4ea4d5a022b1f39f8a3a53041ae8d7b9",
+      "block": 68095520,
+      "ms": 1271,
+      "gasUsed": 169389
+    }
+  ]
+}
