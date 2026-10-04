@@ -297,7 +297,7 @@ export default function TabPage() {
 
       {lines && lines.length > 1 && (
         <section className={styles.stub}>
-          <h2>Time card</h2>
+          <h2 id="timecard">Time card</h2>
           <p className="soft">
             {more ? "The most recent stretch of this tab. " : ""}Red is time on the clock, hatched is pay paused, and the line is money that has
             reached the freelancer.
@@ -307,7 +307,7 @@ export default function TabPage() {
       )}
 
       <section className={styles.stub}>
-        <h2>Pay stub</h2>
+        <h2 id="paystub">Pay stub</h2>
         <p className="soft">Every change to this tab, straight from Monad. Each line links to its transaction.</p>
         {lines == null ? (
           <div className={`skeleton ${styles.stubSkel}`} />

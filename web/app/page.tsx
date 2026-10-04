@@ -195,7 +195,9 @@ export default function Home() {
         </div>
 
         <section className={`wrap ${styles.section} ${styles.tight} ${styles.monad}`}>
-          <h2 className={styles.h2}>Why this needs Monad</h2>
+          <h2 id="monad" className={styles.h2}>
+            Why this needs Monad
+          </h2>
           <BlockTape />
           <div className={styles.points}>
             <div>
