@@ -112,10 +112,10 @@ async function shot(page, name) {
       const raw = await p.locator("[data-balance]").first().getAttribute("data-balance").catch(() => "0");
       const amount = Number(raw || 0) / 1e6;
       if (amount < 0.01) continue;
-      await p.getByRole("button", { name: "Send AUSD" }).click();
+      await p.getByRole("button", { name: "Send AUSD to someone" }).click();
       await p.getByLabel("Send to").fill(process.env.RETURN_TO);
       await p.getByLabel("Amount in AUSD").fill(String(Math.floor(amount * 100) / 100));
-      await p.getByRole("button", { name: "Send AUSD" }).click();
+      await p.getByRole("button", { name: "Send AUSD", exact: true }).click();
       await expectOk(p, /Sent \$/);
       step(`${label} returned $${Math.floor(amount * 100) / 100} to the faucet`);
     }

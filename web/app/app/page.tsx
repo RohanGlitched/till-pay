@@ -102,7 +102,7 @@ export default function YourTabs() {
             </Link>
             {balance != null && balance > 0n && (
               <button className="btn" onClick={() => setSendOpen((o) => !o)} aria-expanded={sendOpen}>
-                Send AUSD
+                Send AUSD to someone
               </button>
             )}
             {lowBalance && hasStarted && (

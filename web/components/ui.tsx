@@ -78,11 +78,14 @@ export function SignInPanel({ title, children }: { title: string; children?: Rea
     try {
       await (which === "up" ? wallet.passkeySignUp?.() : wallet.passkeySignIn?.());
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+      console.warn("passkey", msg);
       setError(
-        /cancel|abort|not allowed|NotAllowedError/i.test(msg)
-          ? "The passkey prompt was closed. Try again, or continue with email."
-          : "This device couldn't use a passkey here. Continue with email instead.",
+        /(login|signup) with passkey not allowed|not enabled|disabled/i.test(msg)
+          ? "Passkey sign-in isn't switched on for Till yet. Continue with email for now."
+          : /NotAllowedError|cancel|abort|timed out/i.test(msg)
+            ? "The passkey prompt was closed. Try again, or continue with email."
+            : "This device couldn't use a passkey here. Continue with email instead.",
       );
     } finally {
       setBusy(null);
