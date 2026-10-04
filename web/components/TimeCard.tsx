@@ -20,7 +20,7 @@ const hhmm = (t: number) => new Date(t * 1000).toLocaleTimeString([], { hour: "2
  * money that reached the freelancer as a rising line with a tick for each payout. Built from the
  * pay stub, so every mark is a transaction on Monad.
  */
-export function TimeCard({ lines, now, earnedUsd, running }: { lines: StubLine[]; now: number; earnedUsd: number; running: boolean }) {
+export function TimeCard({ lines, now, earnedUsd, running, partial }: { lines: StubLine[]; now: number; earnedUsd: number; running: boolean; partial?: boolean }) {
   const events = [...lines].sort((a, b) => a.time - b.time || a.block - b.block);
   if (events.length < 2) return null;
   const t0 = events[0]!.time;
@@ -44,6 +44,8 @@ export function TimeCard({ lines, now, earnedUsd, running }: { lines: StubLine[]
     }
   }
   if (inAt != null) work.push([inAt, running ? t1 : inAt]);
+  // A long shift can start before the stretch of history on screen: the clock is running, so it fills the card.
+  else if (running) work.push([t0, t1]);
   if (heldAt != null) holds.push([heldAt, t1]);
 
   let cum = 0;
@@ -55,7 +57,8 @@ export function TimeCard({ lines, now, earnedUsd, running }: { lines: StubLine[]
       paidPts.push([e.time, cum]);
     }
   paidPts.push([t1, cum]);
-  const top = Math.max(earnedUsd, cum, 0.000001);
+  // With only the latest stretch of history, scale the money line to what was paid in that stretch.
+  const top = Math.max(partial ? cum : earnedUsd, cum, 0.000001);
   const y = (usd: number) => CH_B - (usd / top) * (CH_B - CH_T);
   const paidPath = paidPts.map(([t, v], i) => `${i ? "L" : "M"}${x(t).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
   const worked = work.reduce((s, [a, b]) => s + (b - a), 0);
@@ -101,7 +104,7 @@ export function TimeCard({ lines, now, earnedUsd, running }: { lines: StubLine[]
         </text>
       </svg>
       <figcaption className={styles.cap}>
-        {workedText} on the clock across {sessions}
+        {partial ? "In this stretch: " : ""}{workedText} on the clock across {sessions}
         {holds.length ? `, paused ${holds.length} ${holds.length === 1 ? "time" : "times"}` : ""}. Each tick is a payout transaction.
       </figcaption>
     </figure>

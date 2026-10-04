@@ -400,7 +400,7 @@ export default function TabPage() {
             {more ? "The most recent stretch of this tab. " : ""}Red is time on the clock, hatched is pay paused, and the line is money that has
             reached the freelancer.
           </p>
-          <TimeCard lines={lines} now={now} earnedUsd={toUsd(earned)} running={state === "working"} />
+          <TimeCard lines={lines} now={now} earnedUsd={toUsd(earned)} running={state === "working"} partial={more} />
         </section>
       )}
 
