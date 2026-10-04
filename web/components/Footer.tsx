@@ -1,4 +1,4 @@
-import { FORWARDER, TILL, USDC, explorerAddress } from "@/lib/chain";
+import { FORWARDER, TILL, DOLLAR, explorerAddress } from "@/lib/chain";
 import { Mark } from "./Mark";
 import styles from "./Footer.module.css";
 
@@ -8,7 +8,7 @@ export function Footer() {
       <div className={`wrap ${styles.inner}`}>
         <div className={styles.brand}>
           <Mark size={26} />
-          <p>Till runs on Monad testnet with Circle&apos;s test USDC. Nothing here is real money.</p>
+          <p>Till runs on Monad testnet with Agora&apos;s test AUSD. Nothing here is real money.</p>
         </div>
         <dl className={styles.contracts}>
           <div>
@@ -28,10 +28,10 @@ export function Footer() {
             </dd>
           </div>
           <div>
-            <dt>USDC (Circle, testnet)</dt>
+            <dt>AUSD (Agora, testnet)</dt>
             <dd>
-              <a href={explorerAddress(USDC)} target="_blank" rel="noreferrer" className="serial">
-                {USDC}
+              <a href={explorerAddress(DOLLAR)} target="_blank" rel="noreferrer" className="serial">
+                {DOLLAR}
               </a>
             </dd>
           </div>

@@ -156,7 +156,7 @@ export function Note(p: NoteProps) {
               <span className={styles.symbol}>—</span>
             )}
           </span>
-          <span className={styles.usd}>{p.lines?.sub ?? `${formatUsd(p.usd, 4)} in USDC`}</span>
+          <span className={styles.usd}>{p.lines?.sub ?? `${formatUsd(p.usd, 4)} in AUSD`}</span>
           <span className={styles.who}>
             {p.lines ? (
               p.lines.main

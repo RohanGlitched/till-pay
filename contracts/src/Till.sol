@@ -10,7 +10,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /// @title Till: pay by the second
-/// @notice A client opens a tab with a USDC budget and an hourly rate. While the freelancer is
+/// @notice A client opens a tab with a dollar-stablecoin budget (AUSD) and an hourly rate. While the freelancer is
 /// clocked in, pay accrues every second and can be settled to their wallet at any block. The
 /// client can pause pay or close the tab at any time and gets the unspent budget back at once.
 /// @dev Every function reads the caller through ERC-2771, so a relayer can submit signed requests
@@ -50,7 +50,8 @@ contract Till is ERC2771Context, ReentrancyGuardTransient {
     bytes32 private constant INVITE_TAG = keccak256("TILL_INVITE_V1");
     uint256 private constant MAX_TEXT = 48;
 
-    IERC20 public immutable usdc;
+    /// @notice The dollar stablecoin tabs are paid in (Agora AUSD on Monad).
+    IERC20 public immutable token;
     uint256 public tabCount;
     mapping(uint256 => Tab) internal _tabs;
     mapping(address => uint256[]) internal _tabsOf;
@@ -86,8 +87,8 @@ contract Till is ERC2771Context, ReentrancyGuardTransient {
     error SelfPay();
     error TextTooLong();
 
-    constructor(IERC20 usdc_, address forwarder) ERC2771Context(forwarder) {
-        usdc = usdc_;
+    constructor(IERC20 token_, address forwarder) ERC2771Context(forwarder) {
+        token = token_;
     }
 
     // ---------------------------------------------------------------- opening
@@ -214,7 +215,7 @@ contract Till is ERC2771Context, ReentrancyGuardTransient {
         t.closed = true;
         _touch(id, t);
         uint128 refund = t.budget - t.paid;
-        if (refund > 0) usdc.safeTransfer(t.payer, refund);
+        if (refund > 0) token.safeTransfer(t.payer, refund);
         emit Closed(id, t.paid, refund);
     }
 
@@ -280,7 +281,7 @@ contract Till is ERC2771Context, ReentrancyGuardTransient {
         _touch(id, _tabs[id]);
         _tabsOf[payer].push(id);
         if (payee != address(0)) _tabsOf[payee].push(id);
-        usdc.safeTransferFrom(payer, address(this), budget);
+        token.safeTransferFrom(payer, address(this), budget);
         emit Opened(id, payer, payee, rate, budget, invite, memo);
     }
 
@@ -296,7 +297,7 @@ contract Till is ERC2771Context, ReentrancyGuardTransient {
         }
         t.budget += amount;
         _touch(id, t);
-        usdc.safeTransferFrom(me, address(this), amount);
+        token.safeTransferFrom(me, address(this), amount);
         emit ToppedUp(id, amount, t.budget);
     }
 
@@ -313,7 +314,7 @@ contract Till is ERC2771Context, ReentrancyGuardTransient {
         if (amount == 0) return 0;
         t.paid += amount;
         _touch(id, t);
-        usdc.safeTransfer(t.payee, amount);
+        token.safeTransfer(t.payee, amount);
         emit Settled(id, t.payee, amount, t.paid);
     }
 
@@ -337,6 +338,6 @@ contract Till is ERC2771Context, ReentrancyGuardTransient {
 
     function _permit(address owner, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) internal {
         // A front-run permit leaves the allowance in place, so a failure here is not fatal.
-        try IERC20Permit(address(usdc)).permit(owner, address(this), value, deadline, v, r, s) {} catch {}
+        try IERC20Permit(address(token)).permit(owner, address(this), value, deadline, v, r, s) {} catch {}
     }
 }

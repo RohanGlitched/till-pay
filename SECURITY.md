@@ -8,7 +8,7 @@ Till holds clients' budgets in a contract and pays freelancers by the second. Th
 |---|---|---|---|
 | A tab's earned pay | The tab's freelancer (`payee`) | Anyone, through `settle` / `settleMany` | `Till._settle` |
 | A tab's unspent budget | The client who opened it (`payer`) | The client or the freelancer, through `close` | `Till.close` |
-| A new budget or top-up | Into the tab | Only the client's own signature (USDC permit or approval) | `Till._open`, `Till._topUp` |
+| A new budget or top-up | Into the tab | Only the client's own signature (AUSD permit or approval) | `Till._open`, `Till._topUp` |
 
 There is no owner, no admin key, no upgrade path and no fee switch. Nobody, including us, can redirect a budget.
 
@@ -16,9 +16,9 @@ There is no owner, no admin key, no upgrade path and no fee switch. Nobody, incl
 
 - **Relayer (keeper key).** It pays gas and submits signed requests through OpenZeppelin's `ERC2771Forwarder`. It cannot forge a request: the forwarder checks the user's EIP-712 signature and nonce, and `Till` reads the caller from the forwarder only. The worst a relayer can do is refuse to submit, and users can then call `Till` directly from any wallet.
 - **Forwarder.** OpenZeppelin v5.4 `ERC2771Forwarder`, unmodified. `Till` trusts exactly one forwarder, fixed at deployment.
-- **USDC.** Circle's USDC on Monad testnet (`0x534b2f3A21130d7a60830c2Df862319e593943A3`), checked against developers.circle.com. Permits and transfer authorisations are verified by USDC itself.
+- **AUSD.** Agora's AUSD on Monad testnet (`0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC`), checked against docs.agora.finance. Permits and transfer authorisations are verified by AUSD itself (EIP-712 domain "Agora Dollar", version 1).
 - **Exchange rates.** Shown for reading only (open.er-api.com, cached six hours). They never touch the contract or any amount that moves.
-- **Practice wallets.** A browser-only key for trying the app with test USDC. Email sign-in uses Privy's embedded wallet instead.
+- **Practice wallets.** A browser-only key for trying the app with test AUSD. Email sign-in uses Privy's embedded wallet instead.
 
 ## Attacks and what stops them
 
@@ -34,7 +34,7 @@ There is no owner, no admin key, no upgrade path and no fee switch. Nobody, incl
 | Front-running a permit to make `openWithPermit` fail | A failed permit is ignored if the allowance is already there | `Till._permit` |
 | Reentrancy through the token | Transient-storage reentrancy guard on every function that moves tokens; state is written before transfers | `ReentrancyGuardTransient` |
 | Relayer drained by spam | The relayer only pays for `Till` calls, verifies the signature and simulates the call before sending, and rate-limits per signer | `web/app/api/relay/route.ts` |
-| Faucet drained | One drip per address per hour, four per IP per hour, refused when the wallet already holds 5 USDC | `web/app/api/faucet/route.ts` |
+| Faucet drained | One drip per address per hour, four per IP per hour, refused when the wallet already holds 10 AUSD | `web/app/api/faucet/route.ts` |
 | Logged invite keys | The invite key travels after `#` in the link, so it never reaches a server log | `web/lib/invite.ts` |
 
 ## Monad specifics
@@ -47,7 +47,7 @@ There is no owner, no admin key, no upgrade path and no fee switch. Nobody, incl
 
 - Disputes about the quality of work. Till pays for time on the clock; either side can stop at any second, so the most either can lose is the seconds since the last check.
 - Proof that the freelancer was actually working while clocked in. The client watches the tab live and can pause pay at once.
-- Mainnet deployment. Till runs on Monad testnet with test USDC.
+- Mainnet deployment. Till runs on Monad testnet with test AUSD.
 
 ## Reporting
 

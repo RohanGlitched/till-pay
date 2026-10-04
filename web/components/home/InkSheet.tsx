@@ -59,7 +59,7 @@ export function InkSheet({ usd = 30 }: { usd?: number }) {
       </div>
       <p className={styles.sheetNote}>
         One hour at ${usd} in each currency, at today&apos;s reference rates{ratesUpdated ? ` (updated ${new Date(ratesUpdated).toUTCString().slice(5, 16)})` : ""}.
-        Pay itself moves in USDC; the note shows what it&apos;s worth where you live.
+        Pay itself moves in AUSD; the note shows what it&apos;s worth where you live.
       </p>
     </>
   );

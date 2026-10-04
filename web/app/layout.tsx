@@ -9,7 +9,7 @@ const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-
 export const metadata: Metadata = {
   title: { default: "Till: get paid every second you work", template: "%s · Till" },
   description:
-    "Clients abroad fund a tab in USDC. While you're clocked in, pay lands on Monad every second. No invoices, no ten-day wait, no wire fees.",
+    "Clients abroad fund a tab in AUSD, Agora's digital dollar. While you're clocked in, pay lands on Monad every second. No invoices, no ten-day wait, no wire fees.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://till-pay.vercel.app"),
 };
 

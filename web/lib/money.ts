@@ -25,8 +25,8 @@ export const CURRENCIES: Currency[] = [
 
 export const currency = (code?: string): Currency => CURRENCIES.find((c) => c.code === code) ?? CURRENCIES[0];
 
-/** USDC has 6 decimals. */
-export const USDC_UNIT = 1_000_000n;
+/** AUSD has 6 decimals. */
+export const DOLLAR_UNIT = 1_000_000n;
 export const toUsd = (units: bigint | number) => Number(units) / 1e6;
 export const toUnits = (usd: number) => BigInt(Math.round(usd * 1e6));
 
@@ -52,7 +52,7 @@ export function formatMoney(usd: number, cur: Currency, rates: Rates | null): st
 export const formatUsd = (usd: number, digits = 2) =>
   `$${usd.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 
-/** Hourly rate in USDC units to a per-hour USD number. */
+/** Hourly rate in AUSD units to a per-hour USD number. */
 export const ratePerHour = (rate: bigint) => toUsd(rate);
 
 export function formatDuration(seconds: number): string {

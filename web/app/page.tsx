@@ -15,7 +15,7 @@ import styles from "./page.module.css";
 const STEPS = [
   {
     title: "The client opens a tab",
-    body: "They set an hourly rate and a budget in USDC and send you an invite link. The budget waits in the Till contract on Monad, where it can only go to you or back to them.",
+    body: "They set an hourly rate and a budget in AUSD, Agora's digital dollar, and send you an invite link. The budget waits in the Till contract on Monad, where it can only go to you or back to them.",
   },
   {
     title: "You clock in",
@@ -65,7 +65,7 @@ export default function Home() {
           </div>
           <div className={styles.pitch}>
             <p className={styles.lede}>
-              Your client abroad funds a tab in USDC. While you&apos;re clocked in, your pay builds up every second on Monad and you can cash out
+              Your client abroad funds a tab in AUSD, a digital dollar. While you&apos;re clocked in, your pay builds up every second on Monad and you can cash out
               whenever you like. No invoices, no ten-day wait, no wire fees.
             </p>
             <div className={styles.ctas}>
@@ -76,7 +76,7 @@ export default function Home() {
                 See your tabs
               </Link>
             </div>
-            <p className={styles.note}>Sign in with your email. No wallet app, no seed phrase, no gas. Test USDC is one click away.</p>
+            <p className={styles.note}>Sign in with your email. No wallet app, no seed phrase, no gas. Test AUSD is one click away.</p>
           </div>
         </section>
 
@@ -217,7 +217,7 @@ export default function Home() {
             <div>
               <h3>One signature, no gas</h3>
               <p>
-                You sign; Till&apos;s relayer submits. Deposits use a USDC permit and cash-outs a USDC transfer authorisation, so neither side
+                You sign; Till&apos;s relayer submits. Deposits use an AUSD permit and transfers an AUSD transfer authorisation, so neither side
                 ever holds MON.
               </p>
             </div>

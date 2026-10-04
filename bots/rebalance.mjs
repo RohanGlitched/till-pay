@@ -1,5 +1,5 @@
 /**
- * Moves test USDC from seeded clients back to the faucet (deployer) with EIP-3009 authorisations the
+ * Moves test AUSD from seeded clients back to the faucet (deployer) with EIP-3009 authorisations the
  * keeper submits, since the bots hold no MON. Usage: node bots/rebalance.mjs bot1=12 bot3=6
  */
 import fs from "node:fs";
@@ -7,7 +7,8 @@ import { createPublicClient, createWalletClient, defineChain, encodeFunctionData
 import { privateKeyToAccount } from "viem/accounts";
 
 const RPC = "https://testnet-rpc.monad.xyz";
-const USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
+const DOLLAR = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC"; // Agora AUSD on Monad testnet
+const AGORA_FAUCET = "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C";
 const keys = JSON.parse(fs.readFileSync(process.env.KEYS || "keys/wallets.json", "utf8"));
 const chain = defineChain({ id: 10143, name: "Monad Testnet", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
 const pub = createPublicClient({ chain, transport: http(RPC) });
@@ -22,15 +23,15 @@ for (const arg of process.argv.slice(2)) {
   const nonce = `0x${Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("hex")}`;
   const validBefore = BigInt(Math.floor(Date.now() / 1000) + 1800);
   const sig = await from.signTypedData({
-    domain: { name: "USDC", version: "2", chainId: chain.id, verifyingContract: USDC },
+    domain: { name: "Agora Dollar", version: "1", chainId: chain.id, verifyingContract: DOLLAR },
     types: { TransferWithAuthorization: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" }] },
     primaryType: "TransferWithAuthorization",
     message: { from: from.address, to, value, validAfter: 0n, validBefore, nonce },
   });
   const { v, r, s } = hexToSignature(sig);
   const data = encodeFunctionData({ abi, functionName: "transferWithAuthorization", args: [from.address, to, value, 0n, validBefore, nonce, Number(v), r, s] });
-  const est = await pub.estimateGas({ account: keeper.account.address, to: USDC, data });
-  const hash = await keeper.sendTransaction({ to: USDC, data, gas: (est * 115n) / 100n });
+  const est = await pub.estimateGas({ account: keeper.account.address, to: DOLLAR, data });
+  const hash = await keeper.sendTransaction({ to: DOLLAR, data, gas: (est * 115n) / 100n });
   const rc = await pub.waitForTransactionReceipt({ hash });
   console.log(k, amt, rc.status, hash);
 }

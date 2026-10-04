@@ -3,7 +3,7 @@ import styles from "./home.module.css";
 const QA = [
   {
     q: "Is this real money?",
-    a: "Not yet. Till runs on Monad testnet with Circle's test USDC, which has no value. The contract and the flows are the ones that would run on mainnet.",
+    a: "Not yet. Till runs on Monad testnet with Agora's test AUSD, which has no value. The contract and the flows are the ones that would run on mainnet.",
   },
   {
     q: "Do I need a crypto wallet or any MON?",
@@ -19,7 +19,7 @@ const QA = [
   },
   {
     q: "How do I get money into my local currency?",
-    a: "Your pay lands as USDC, which you can send to any exchange or wallet with one signature. Local cash-out partners are next on the roadmap; the note already shows your pay in your currency at today's rate.",
+    a: "Your pay lands as AUSD, Agora's dollar stablecoin, which you can send to any exchange or wallet with one signature. Local cash-out partners are next on the roadmap; the note already shows your pay in your currency at today's rate.",
   },
   {
     q: "Who can move the money in a tab?",

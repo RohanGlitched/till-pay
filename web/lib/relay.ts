@@ -2,7 +2,7 @@
 
 import { concat, encodeFunctionData, hexToSignature, toHex, type Address, type Hex } from "viem";
 import { tillAbi, forwarderAbi } from "./abi";
-import { FORWARDER, TILL, USDC, monadTestnet, publicClient, usdcAbi } from "./chain";
+import { FORWARDER, TILL, DOLLAR, DOLLAR_DOMAIN, monadTestnet, publicClient, dollarAbi } from "./chain";
 import type { Wallet } from "./wallet";
 
 export type Landed = { hash: Hex; block: number; ms: number };
@@ -68,13 +68,13 @@ export async function relay(wallet: Wallet, fn: string, args: readonly unknown[]
   return { ...res, ms: Math.round(performance.now() - started) };
 }
 
-/** EIP-2612 permit for Circle USDC so opening or topping up a tab needs no approval transaction. */
+/** EIP-2612 permit for AUSD so opening or topping up a tab needs no approval transaction. */
 export async function signPermit(wallet: Wallet, value: bigint) {
   const owner = wallet.address!;
-  const nonce = (await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "nonces", args: [owner] })) as bigint;
+  const nonce = (await publicClient.readContract({ address: DOLLAR, abi: dollarAbi, functionName: "nonces", args: [owner] })) as bigint;
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800);
   const sig = await wallet.signTypedData({
-    domain: { name: "USDC", version: "2", chainId: monadTestnet.id, verifyingContract: USDC },
+    domain: { ...DOLLAR_DOMAIN, chainId: monadTestnet.id, verifyingContract: DOLLAR },
     types: {
       Permit: [
         { name: "owner", type: "address" },
@@ -91,13 +91,13 @@ export async function signPermit(wallet: Wallet, value: bigint) {
   return { deadline, v: Number(v ?? 27n), r, s };
 }
 
-/** Sends USDC out of the user's wallet with an EIP-3009 authorization the relayer submits. */
+/** Sends AUSD out of the user's wallet with an EIP-3009 authorization the relayer submits. */
 export async function sendUsdc(wallet: Wallet, to: Address, value: bigint): Promise<Landed> {
   const from = wallet.address!;
   const nonce = toHex(crypto.getRandomValues(new Uint8Array(32)));
   const validBefore = BigInt(Math.floor(Date.now() / 1000) + 1800);
   const sig = await wallet.signTypedData({
-    domain: { name: "USDC", version: "2", chainId: monadTestnet.id, verifyingContract: USDC },
+    domain: { ...DOLLAR_DOMAIN, chainId: monadTestnet.id, verifyingContract: DOLLAR },
     types: {
       TransferWithAuthorization: [
         { name: "from", type: "address" },
@@ -146,7 +146,7 @@ export function plainError(e: unknown): string {
     [/NotPayer/, "Only the client who opened this tab can do that."],
     [/NotPayee/, "Only the freelancer on this tab can clock in."],
     [/NotParty/, "Only the client or the freelancer on this tab can do that."],
-    [/transfer amount exceeds balance|exceeds balance/i, "Not enough USDC in your wallet. Get test USDC first."],
+    [/transfer amount exceeds balance|exceeds balance/i, "Not enough AUSD in your wallet. Get test AUSD first."],
   ];
   for (const [re, words] of known) if (re.test(msg)) return words;
   return msg.length < 160 ? msg : "Monad didn't accept that. Try again in a moment.";

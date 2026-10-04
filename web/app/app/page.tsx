@@ -46,7 +46,7 @@ export default function YourTabs() {
   const lowBalance = balance != null && balance < 5_000_000n;
   const hasStarted = (views?.length ?? 0) > 0 && !!mine?.name;
   const getUsdc = () =>
-    faucet.run("10 test USDC arrived", async (sent) => {
+    faucet.run("25 test AUSD arrived", async (sent) => {
       sent();
       const r = await requestTestUsdc(me);
       refreshBalance();
@@ -87,7 +87,7 @@ export default function YourTabs() {
   return (
     <main className={`wrap ${styles.page}`}>
       <section className={styles.wallet}>
-        <div className={styles.walletNote} data-usdc={balance?.toString() ?? ""}>
+        <div className={styles.walletNote} data-balance={balance?.toString() ?? ""}>
           <WalletNote address={me} balance={balance} profile={mine} paidTabs={paid} />
         </div>
         <div className={styles.walletSide}>
@@ -102,12 +102,12 @@ export default function YourTabs() {
             </Link>
             {balance != null && balance > 0n && (
               <button className="btn" onClick={() => setSendOpen((o) => !o)} aria-expanded={sendOpen}>
-                Send to another wallet
+                Send AUSD
               </button>
             )}
             {lowBalance && hasStarted && (
               <button className="btn quiet" disabled={faucet.busy} onClick={getUsdc}>
-                {faucet.busy ? "Sending test USDC…" : "Get 10 test USDC"}
+                {faucet.busy ? "Sending test AUSD…" : "Get 25 test AUSD"}
               </button>
             )}
           </div>
@@ -220,12 +220,12 @@ function SendForm({ max, onDone }: { max: bigint; onDone: () => void }) {
         <span className="hint">An exchange deposit address or any Monad wallet. You sign; Till pays the gas.</span>
       </div>
       <div className="field">
-        <label htmlFor="amt">Amount in USDC</label>
+        <label htmlFor="amt">Amount in AUSD</label>
         <input id="amt" className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
       </div>
       <div className={styles.sendFoot}>
         <button className="btn primary" disabled={!!problem || act.busy}>
-          {busyLabel(act.phase, "Send USDC")}
+          {busyLabel(act.phase, "Send AUSD")}
         </button>
         {problem && to && <span className="soft">{problem}</span>}
       </div>

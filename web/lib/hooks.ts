@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { decodeEventLog, type Address, type Hex } from "viem";
 import { tillAbi } from "./abi";
-import { TILL, USDC, publicClient, usdcAbi } from "./chain";
+import { TILL, DOLLAR, publicClient, dollarAbi } from "./chain";
 import { readProfiles, readTabs, type Profile, type TabView } from "./tabs";
 
 /** One person's on-chain profile (name, city, currency), refreshed now and then. */
@@ -86,7 +86,7 @@ export function useUsdcBalance(address?: Address) {
   const refresh = useCallback(async () => {
     if (!address) return setBalance(null);
     try {
-      setBalance((await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [address] })) as bigint);
+      setBalance((await publicClient.readContract({ address: DOLLAR, abi: dollarAbi, functionName: "balanceOf", args: [address] })) as bigint);
     } catch {}
   }, [address]);
   useEffect(() => {

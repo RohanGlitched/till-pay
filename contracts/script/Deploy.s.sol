@@ -8,14 +8,18 @@ import {Till} from "../src/Till.sol";
 
 /// forge script script/Deploy.s.sol --rpc-url monad_testnet --broadcast --private-key $DEPLOYER_KEY
 contract Deploy is Script {
-    address constant MONAD_TESTNET_USDC = 0x534b2f3A21130d7a60830c2Df862319e593943A3;
+    /// Agora AUSD on Monad testnet (docs.agora.finance/developer/contract-deployments).
+    address constant MONAD_TESTNET_AUSD = 0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC;
+    /// The forwarder deployed with the first Till; reused so every Till trusts the same one.
+    address constant FORWARDER = 0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1;
 
     function run() external {
         vm.startBroadcast();
-        ERC2771Forwarder fwd = new ERC2771Forwarder("Till");
-        Till till = new Till(IERC20(MONAD_TESTNET_USDC), address(fwd));
+        // A fresh chain gets its own forwarder; Monad testnet reuses the deployed one.
+        address fwd = block.chainid == 10143 && FORWARDER.code.length > 0 ? FORWARDER : address(new ERC2771Forwarder("Till"));
+        Till till = new Till(IERC20(MONAD_TESTNET_AUSD), fwd);
         vm.stopBroadcast();
-        console.log("forwarder", address(fwd));
+        console.log("forwarder", fwd);
         console.log("till", address(till));
     }
 }

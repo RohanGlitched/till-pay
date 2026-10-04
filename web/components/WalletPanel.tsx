@@ -40,7 +40,7 @@ export function WalletNote({
       status={working ? `Earning on ${working} ${working === 1 ? "tab" : "tabs"} right now` : balance == null ? "Reading your wallet…" : "Wallet"}
       serialLine={`${address.slice(0, 8)}…${address.slice(-6)}`}
       lines={{
-        sub: balance == null ? "Reading balance…" : `${formatUsd(usd, 2)} in USDC`,
+        sub: balance == null ? "Reading balance…" : `${formatUsd(usd, 2)} in AUSD`,
         main: (
           <>
             Held by <b>{name}</b>
@@ -103,11 +103,11 @@ export function GettingStarted({
   const steps = [
     {
       done: hasUsdc,
-      title: "Get test USDC",
-      body: "Ten test dollars from Circle's USDC on Monad testnet. No real money.",
+      title: "Get test AUSD",
+      body: "25 test dollars of Agora's AUSD on Monad testnet. No real money.",
       action: (
         <button className="btn small primary" onClick={onFaucet} disabled={faucetBusy}>
-          {faucetBusy ? "Sending…" : "Get 10 test USDC"}
+          {faucetBusy ? "Sending…" : "Get 25 test AUSD"}
         </button>
       ),
     },

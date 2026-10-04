@@ -41,7 +41,7 @@ export default function OpenTab() {
     return (
       <main className={`wrap ${styles.page}`}>
         <SignInPanel title="Sign in to open a tab">
-          <p>You fund the tab with test USDC; the freelancer is paid every second they&apos;re clocked in.</p>
+          <p>You fund the tab with test AUSD; the freelancer is paid every second they&apos;re clocked in.</p>
         </SignInPanel>
       </main>
     );
@@ -208,7 +208,7 @@ export default function OpenTab() {
                   ? `For ${pick.name.split(" ")[0]} that's ${formatMoney(rateN, previewCur, rates)} an hour, ${formatMoney(rateN / 3600, { ...previewCur, digits: 2 }, rates)} a second.`
                   : rateN > 0
                     ? `Paid by the second: ${formatUsd(rateN / 3600, 4)} a second.`
-                    : "USDC per hour, paid by the second."}
+                    : "AUSD per hour, paid by the second."}
               </span>
             </div>
             <div className="field">
@@ -238,7 +238,7 @@ export default function OpenTab() {
                   className={styles.inlineBtn}
                   disabled={faucet.busy}
                   onClick={() =>
-                    faucet.run("10 test USDC arrived", async (sent) => {
+                    faucet.run("25 test AUSD arrived", async (sent) => {
                       sent();
                       const r = await requestTestUsdc(me);
                       refreshBalance();
@@ -246,7 +246,7 @@ export default function OpenTab() {
                     })
                   }
                 >
-                  {faucet.busy ? "Sending test USDC…" : "Get 10 test USDC"}
+                  {faucet.busy ? "Sending test AUSD…" : "Get 25 test AUSD"}
                 </button>
               )}
             </span>

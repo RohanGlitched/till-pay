@@ -14,8 +14,13 @@ export const monadTestnet = defineChain({
 
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://testnet-rpc.monad.xyz";
 
-/** Circle's USDC on Monad testnet (developers.circle.com/stablecoins/usdc-contract-addresses). */
-export const USDC: Address = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
+/** Agora's AUSD on Monad testnet (docs.agora.finance/developer/contract-deployments). */
+export const DOLLAR: Address = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC";
+export const DOLLAR_SYMBOL = "AUSD";
+/** The EIP-712 domain AUSD signs permits and transfer authorisations under. */
+export const DOLLAR_DOMAIN = { name: "Agora Dollar", version: "1" } as const;
+/** Agora's public testnet faucet: 10,000 AUSD per call. */
+export const AGORA_FAUCET: Address = "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C";
 export const TILL = (process.env.NEXT_PUBLIC_TILL_ADDRESS || "0x0000000000000000000000000000000000000000") as Address;
 export const FORWARDER = (process.env.NEXT_PUBLIC_FORWARDER_ADDRESS || "0x0000000000000000000000000000000000000000") as Address;
 
@@ -27,7 +32,8 @@ export const publicClient = createPublicClient({
 export const explorerTx = (hash: string) => `${monadTestnet.blockExplorers.default.url}/tx/${hash}`;
 export const explorerAddress = (a: string) => `${monadTestnet.blockExplorers.default.url}/address/${a}`;
 
-export const usdcAbi = [
+export const dollarAbi = [
+  { type: "function", name: "requestFunds", stateMutability: "nonpayable", inputs: [{ name: "recipient", type: "address" }], outputs: [] },
   { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "a", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "nonces", stateMutability: "view", inputs: [{ name: "a", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "name", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },

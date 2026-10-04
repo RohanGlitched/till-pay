@@ -20,7 +20,7 @@ jobs:
       - name: Unit and fuzz tests
         working-directory: contracts
         run: forge test -vv
-      - name: Rehearsal on a Monad testnet fork with Circle USDC
+      - name: Rehearsal on a Monad testnet fork with Agora AUSD
         working-directory: contracts
         run: forge test --match-contract Fork --fork-url https://testnet-rpc.monad.xyz -vv
 
@@ -41,5 +41,5 @@ jobs:
       - working-directory: web
         run: npm run build
         env:
-          NEXT_PUBLIC_TILL_ADDRESS: "0x4720B1FA15a8e3b8AEc7aA6B7b627dCacEaa1b4f"
+          NEXT_PUBLIC_TILL_ADDRESS: "0xeb6c2c519c9bcc4495364c34ac116c20098113d1"
           NEXT_PUBLIC_FORWARDER_ADDRESS: "0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1"

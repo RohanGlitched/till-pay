@@ -6,43 +6,43 @@ Everything here can be checked on Monad testnet (chain 10143) without trusting u
 
 | Contract | Address | Source |
 |---|---|---|
-| Till | [`0x4720B1FA15a8e3b8AEc7aA6B7b627dCacEaa1b4f`](https://testnet.monadvision.com/address/0x4720B1FA15a8e3b8AEc7aA6B7b627dCacEaa1b4f) | Verified on Sourcify, exact match ([job](https://sourcify-api-monad.blockvision.org/v2/verify/35c9dc31-5c2d-4400-9004-8201d9f8f1c4)) |
+| Till (AUSD) | [`0xeb6c2c519c9bcc4495364c34ac116c20098113d1`](https://testnet.monadvision.com/address/0xeb6c2c519c9bcc4495364c34ac116c20098113d1) | Verified on Sourcify, exact match ([job](https://sourcify-api-monad.blockvision.org/v2/verify/e3300355-e6e0-40ff-8435-6642865d38f9)) |
 | ERC2771Forwarder (OpenZeppelin 5.4, unmodified) | [`0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1`](https://testnet.monadvision.com/address/0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1) | Verified on Sourcify, exact match ([job](https://sourcify-api-monad.blockvision.org/v2/verify/197e7720-567e-4e95-81d2-336d820b0aba)) |
-| USDC (Circle) | [`0x534b2f3A21130d7a60830c2Df862319e593943A3`](https://testnet.monadvision.com/address/0x534b2f3A21130d7a60830c2Df862319e593943A3) | [Circle's address list](https://developers.circle.com/stablecoins/usdc-contract-addresses) |
+| AUSD (Agora) | [`0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC`](https://testnet.monadvision.com/address/0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC) | [Agora's deployments](https://docs.agora.finance/developer/contract-deployments) |
+| Agora AUSD faucet | [`0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C`](https://testnet.monadvision.com/address/0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C) | Used to fund test accounts |
 
-Deployment transactions: [forwarder](https://testnet.monadvision.com/tx/0x4ec106a8034299c0146d51b18ef56852c693ee1205eb16c93623fa3958625a15), [Till](https://testnet.monadvision.com/tx/0x01b70c15205c7f32748aa462af61a132bd23d5d16f1831bc6fbd5b722d632881).
+Deployment transactions: [forwarder](https://testnet.monadvision.com/tx/0x4ec106a8034299c0146d51b18ef56852c693ee1205eb16c93623fa3958625a15), [Till on AUSD](https://testnet.monadvision.com/tx/0x12ec03d3c85cfe1ae59fdb67c29d1b4b181af40584c189ac158b0643f30760d6). An earlier Till on Circle USDC (`0x4720B1FA15a8e3b8AEc7aA6B7b627dCacEaa1b4f`) was replaced by the AUSD deployment on Oct 4.
 
 ## One tab, every action, on chain
 
-`bots/proof.mjs` runs a whole tab with fresh wallets and no gas on either side: every Till action is signed by the client or freelancer and submitted by the relayer through the forwarder. Tab № 4, client `0xe5F9F03F87a226e50016578708B646A4C5D397ce`, freelancer `0x4E6e8C8fbA00Bd2C78FC85415F686845e2072cAc`.
+`bots/proof.mjs` runs a whole tab with fresh wallets and no gas on either side: the client is funded from Agora's AUSD faucet, then every Till action is signed by the client or freelancer and submitted by the relayer through the forwarder. Tab № 6, client `0x828ac92115c7F12AF1C7A37265C600048dd24F53`, freelancer `0x2aAEABf549E313f2cF19d2928Ee95603C218AC0c`.
 
 | # | Step | Transaction | Block | Submit to receipt |
 |---|---|---|---|---|
-| 1 | Fund a fresh client with 1.50 test USDC | [0x91bcf731…](https://testnet.monadvision.com/tx/0x91bcf731211e6873b5c5d815c1a5692114a50297445e2f611199fdbf3d1208a5) | 68,095,311 | 2.58 s |
-| 2 | Client sets a profile (gasless) | [0xc08e8009…](https://testnet.monadvision.com/tx/0xc08e8009fa78a7a0a255784aaad429aa9723c8586f0da7f0d99fe8d01fdbe013) | 68,095,321 | 1.57 s |
-| 3 | Freelancer sets a profile (gasless) | [0x0836a2c1…](https://testnet.monadvision.com/tx/0x0836a2c1c9571bbb1043139feaae6cd7cc2f030c7b3e4f5e711eb8ac4a8ce3e8) | 68,095,328 | 1.58 s |
-| 4 | Open a tab by invite, $36/h, $1 budget (permit) | [0x6f41a3d5…](https://testnet.monadvision.com/tx/0x6f41a3d5d157c215ddbed9e6adca7acfc644bd07403ae2595327ca8eead80d30) | 68,095,337 | 1.55 s |
-| 5 | Freelancer claims the invite | [0x7ba3f7fa…](https://testnet.monadvision.com/tx/0x7ba3f7faca737b402b666cca08ceca9dd22ce4e1d0c1e4ca4db42aede1889028) | 68,095,346 | 1.54 s |
-| 6 | Freelancer clocks in | [0x89aeadff…](https://testnet.monadvision.com/tx/0x89aeadffa56ba3d153cbe4552b0ab41936fbf7667e58760c4871bf04fdc3ee94) | 68,095,353 | 2.27 s |
-| 7 | Payout 1 while working (anyone can settle) | [0x51e02193…](https://testnet.monadvision.com/tx/0x51e02193882ad335be06553034cd7442032d55eb6aa408c32ea86378829f5933) | 68,095,382 | 3.58 s |
-| 8 | Payout 2 while working (anyone can settle) | [0xcb422e9d…](https://testnet.monadvision.com/tx/0xcb422e9d62a56ae88efc77986f2a689b45ed7dbafe50a91b6ec7db4dd79f57bc) | 68,095,411 | 3.02 s |
-| 9 | Payout 3 while working (anyone can settle) | [0x7aaa94d3…](https://testnet.monadvision.com/tx/0x7aaa94d38f0fbce3fb7d7a49f5c569364e772d657fce5e7aa91dc789a2567fe0) | 68,095,439 | 2.52 s |
-| 10 | Client pauses pay (stops the clock) | [0xbf5ebefc…](https://testnet.monadvision.com/tx/0xbf5ebefca555308824c2a3f769817c3955c6c1553a450fcdcd3b9176b905b58d) | 68,095,447 | 0.76 s |
-| 11 | Client tops up $0.50 (permit) | [0xc5503d21…](https://testnet.monadvision.com/tx/0xc5503d218213dba1c4b70a5644707f18e001728f6006f7df5d6107097c763069) | 68,095,455 | 1.16 s |
-| 12 | Client resumes pay | [0xe1bbd655…](https://testnet.monadvision.com/tx/0xe1bbd655b4ee223530ee91a6b4a8079f8c4a6146a38427831d4265e2c8b5a2da) | 68,095,461 | 1.93 s |
-| 13 | Freelancer clocks in again | [0x4e9f7767…](https://testnet.monadvision.com/tx/0x4e9f776710e81f19f206ecf82d88b1e003a3cb0efdf31a0e267b89e43b13eeb5) | 68,095,469 | 0.77 s |
-| 14 | Freelancer clocks out | [0x821ed1b4…](https://testnet.monadvision.com/tx/0x821ed1b4e960eb0fca0c426b582904f1d5fb26c239a99d1ea9839c6fcf8a5269) | 68,095,496 | 1.03 s |
-| 15 | Final payout | [0x3011dd6a…](https://testnet.monadvision.com/tx/0x3011dd6a630759be90c1599f70f8e54723c3c061ccd67b301e41d9a348eaa147) | 68,095,500 | 1.68 s |
-| 16 | Freelancer cashes out $0.3600 (EIP-3009) | [0xb16f5635…](https://testnet.monadvision.com/tx/0xb16f5635f32a405c9c2448f07366f38fab5b4799ad4b1a3c0e737beec0170c7b) | 68,095,507 | 1.31 s |
-| 17 | Client closes the tab; unspent budget refunded | [0x6aa10200…](https://testnet.monadvision.com/tx/0x6aa102003a3716644e0a6ce8331c10c44856a4d1026befb2325358b926d11618) | 68,095,514 | 1.35 s |
-| 18 | Client's refund returned to the faucet | [0x7a2b7e8d…](https://testnet.monadvision.com/tx/0x7a2b7e8d651b1fba2493cd9fdeb6af9c4ea4d5a022b1f39f8a3a53041ae8d7b9) | 68,095,520 | 1.27 s |
+| 1 | Fund a fresh client from Agora's AUSD faucet | [0xf199ad54…](https://testnet.monadvision.com/tx/0xf199ad5476cbf9143f06ce3a2efbb9a8096b8df1779aebcfde65a8cf1c4fce44) | 68,122,091 | 2.61 s |
+| 2 | Client sets a profile (gasless) | [0xde698cb9…](https://testnet.monadvision.com/tx/0xde698cb9c1bfb3eb725f1ae3d88eef0c9c65da3b345c82e54b27a63bf4ab80a0) | 68,122,101 | 1.73 s |
+| 3 | Freelancer sets a profile (gasless) | [0xbbdb7552…](https://testnet.monadvision.com/tx/0xbbdb75529a49842bacf782cfd819d0d8fa82b2e3d0b1e99825bb323c77838f0d) | 68,122,112 | 1.82 s |
+| 4 | Open a tab by invite, $36/h, $1 budget (permit) | [0xa1177529…](https://testnet.monadvision.com/tx/0xa11775299c15c774caae591cce46d1c049e3e6b71c7a452dc748e25cc19fd2aa) | 68,122,120 | 1.63 s |
+| 5 | Freelancer claims the invite | [0x2db24eb2…](https://testnet.monadvision.com/tx/0x2db24eb2f89e2354b7f0e3ab35bb9d4fcd5e3856ac5f883722f5c6ce682dfaec) | 68,122,129 | 1.62 s |
+| 6 | Freelancer clocks in | [0x28335744…](https://testnet.monadvision.com/tx/0x28335744cf1f318c9010f5b08bda5eeec853d8b840fb073df011cf70c5515360) | 68,122,137 | 1.52 s |
+| 7 | Payout 1 while working (anyone can settle) | [0x0d4fc161…](https://testnet.monadvision.com/tx/0x0d4fc16182a400c0f70cab1bdb12e421b7283824675dc9f296f3cced3c75c424) | 68,122,160 | 2.08 s |
+| 8 | Payout 2 while working (anyone can settle) | [0xf566b074…](https://testnet.monadvision.com/tx/0xf566b0744d060a5dede75b5caa0cc5b8cd946424104472e728c26e3191d87cb0) | 68,122,186 | 2.51 s |
+| 9 | Payout 3 while working (anyone can settle) | [0x4b0faa09…](https://testnet.monadvision.com/tx/0x4b0faa09d35913d8ff5aed2e23d1b81d67a66b838184557f8ae949d665542080) | 68,122,213 | 2.06 s |
+| 10 | Client pauses pay (stops the clock) | [0x2a4f4202…](https://testnet.monadvision.com/tx/0x2a4f4202d8ee348e2775bdf8787c675fb12b6a31ada230f94f0382923b24bd50) | 68,122,220 | 1.32 s |
+| 11 | Client tops up $0.50 (permit) | [0x1128f388…](https://testnet.monadvision.com/tx/0x1128f3880db9eae191624cbc941d1c772862cf03647ce4fb15795533b806617d) | 68,122,228 | 0.61 s |
+| 12 | Client resumes pay | [0xa1a904aa…](https://testnet.monadvision.com/tx/0xa1a904aab9b64fb6b6b262540c61eaaa24217ede7cfe3198ff290b6a3bf7394d) | 68,122,234 | 1.03 s |
+| 13 | Freelancer clocks in again | [0xd7dcf7dd…](https://testnet.monadvision.com/tx/0xd7dcf7dd70b1635ea37b46007d3ecad105738e8987109cac3d832848529741dc) | 68,122,240 | 2.03 s |
+| 14 | Freelancer clocks out | [0x55780482…](https://testnet.monadvision.com/tx/0x55780482c874061f3ce4e4273fe14eaa621887d3e6e62c62d4d3dd3d2fdd591e) | 68,122,271 | 1.69 s |
+| 15 | Final payout | [0x4247b4c8…](https://testnet.monadvision.com/tx/0x4247b4c8e7f1a335c37f1fecf7145db331a021bed2d8a5f5d03103144ebabd4f) | 68,122,277 | 1.32 s |
+| 16 | Freelancer cashes out $0.3500 (EIP-3009) | [0xdd564d5d…](https://testnet.monadvision.com/tx/0xdd564d5d1aa5c4b7054d4e328e4866e4ade799e4fd9bfc38a0e5e7b5516ce6cd) | 68,122,283 | 1.34 s |
+| 17 | Client closes the tab; unspent budget refunded | [0x0c1d2e6c…](https://testnet.monadvision.com/tx/0x0c1d2e6c8cbbb1415a83a296bd888c4fdfe3a0bf71ffdbc8db84dfe4d3a1f94e) | 68,122,289 | 1.35 s |
 
-Result: the freelancer was paid **$0.360000** for the seconds on the clock and the client got **$1.140000** back; together exactly the $1.50 deposited. Times are from a laptop in India to Monad's public RPC, including polling for the receipt.
+Result: the freelancer was paid **$0.350000** for the seconds on the clock and **$1.150000** of the $1.50 budget went back to the client; together exactly the $1.50 deposited. Times are from a laptop in India to Monad's public RPC, including polling for the receipt.
 
-Run it yourself (needs a funded deployer and keeper in `keys/wallets.json`):
+Run it yourself (needs a deployer with MON and a keeper in `keys/wallets.json`):
 
 ```bash
-TILL=0x4720B1FA15a8e3b8AEc7aA6B7b627dCacEaa1b4f FORWARDER=0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1 node bots/proof.mjs
+TILL=0xeb6c2c519c9bcc4495364c34ac116c20098113d1 FORWARDER=0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1 node bots/proof.mjs
 ```
 
 ## Tests
@@ -50,7 +50,7 @@ TILL=0x4720B1FA15a8e3b8AEc7aA6B7b627dCacEaa1b4f FORWARDER=0xB0Af71Dfb11df900B2B1
 ```bash
 cd contracts
 forge test                                                    # 12 tests, fuzz at 1,000 runs
-forge test --match-contract Fork --fork-url monad_testnet     # Circle USDC permit + transferWithAuthorization on a Monad fork
+forge test --match-contract Fork --fork-url monad_testnet     # Agora AUSD (faucet, permit, transferWithAuthorization) on a Monad fork
 ```
 
 | Claim | Test |
@@ -74,7 +74,7 @@ The web app has an end-to-end test that drives the real UI on the deployed site:
 |---|---|
 | "Pay builds up every second" | `Till._earned`: `banked + (now - since) * rate / 3600`, capped at the budget |
 | "Can only pay you or refund the client" | `Till._settle` pays `payee` only; `Till.close` refunds `payer` only; no owner or admin functions exist |
-| "No gas, one signature" | `web/lib/relay.ts` (EIP-712 forward requests, EIP-2612 permit, EIP-3009 transfers), `web/app/api/relay/route.ts` |
+| "No gas, one signature" | `web/lib/relay.ts` (EIP-712 forward requests, EIP-2612 permit and EIP-3009 transfers on AUSD), `web/app/api/relay/route.ts` |
 | "Payouts every few seconds while you watch" | `web/app/tab/[id]/page.tsx` calls `/api/settle` every 6 s while the page is visible |
 | Live numbers on the landing page | `web/app/api/live/route.ts` reads every tab's state from the contract (no indexer) |
 | Pay stub from chain | `web/lib/hooks.ts` `useHistory` walks `Activity(id, prevBlock)` one exact block at a time |

@@ -1,35 +1,41 @@
 import { encodeFunctionData, isAddress, type Address } from "viem";
-import { USDC, publicClient, usdcAbi } from "@/lib/chain";
+import { AGORA_FAUCET, DOLLAR, dollarAbi, publicClient } from "@/lib/chain";
 import { json, limited, revertReason, sendAndWait, signer } from "@/lib/server";
 
 export const runtime = "nodejs";
 
-const DRIP = 10_000_000n; // 10 test USDC: hours of pay at a typical rate
-const ENOUGH = 5_000_000n;
+const DRIP = 25_000_000n; // 25 test AUSD: most of an hour at a typical rate
+const ENOUGH = 10_000_000n;
+const REFILL_BELOW = 500_000_000n;
 
-/** One click of Circle's real test USDC on Monad, so a judge can open a tab without visiting any faucet. */
+/**
+ * One click of Agora's test AUSD on Monad, so a judge can open a tab without visiting any faucet.
+ * The faucet wallet tops itself up from Agora's on-chain faucet (10,000 AUSD a call) when it runs low.
+ */
 export async function POST(req: Request) {
   const b = (await req.json().catch(() => null)) as { address?: Address } | null;
   if (!b?.address || !isAddress(b.address)) return json({ error: "Sign in first so we know where to send it." }, 400);
   const who = b.address.toLowerCase();
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "?";
-  if (limited(`faucet:${who}`, 1, 3_600_000) || limited(`faucet-ip:${ip}`, 4, 3_600_000))
-    return json({ error: "Test USDC was sent here in the last hour. Try again later." }, 429);
-  const balance = (await publicClient.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [b.address] })) as bigint;
-  if (balance >= ENOUGH) return json({ error: "You already have enough test USDC to open a tab." }, 400);
+  if (limited(`faucet:${who}`, 1, 3_600_000) || limited(`faucet-ip:${ip}`, 6, 3_600_000))
+    return json({ error: "Test AUSD was sent here in the last hour. Try again later." }, 429);
+  const balance = (await publicClient.readContract({ address: DOLLAR, abi: dollarAbi, functionName: "balanceOf", args: [b.address] })) as bigint;
+  if (balance >= ENOUGH) return json({ error: "You already have enough test AUSD to open a tab." }, 400);
   try {
     const faucet = signer("faucet");
     const pool = (await publicClient.readContract({
-      address: USDC,
-      abi: usdcAbi,
+      address: DOLLAR,
+      abi: dollarAbi,
       functionName: "balanceOf",
       args: [faucet.account.address],
     })) as bigint;
-    if (pool < DRIP)
-      return json({ error: "The test USDC faucet is empty right now. Circle's faucet works too: faucet.circle.com, Monad Testnet." }, 503);
-    const data = encodeFunctionData({ abi: usdcAbi, functionName: "transfer", args: [b.address, DRIP] });
-    const landed = await sendAndWait(faucet, { to: USDC, data });
-    return json({ ...landed, amount: 10 });
+    if (pool < REFILL_BELOW) {
+      const refill = encodeFunctionData({ abi: dollarAbi, functionName: "requestFunds", args: [faucet.account.address] });
+      await sendAndWait(faucet, { to: AGORA_FAUCET, data: refill }).catch(() => null);
+    }
+    const data = encodeFunctionData({ abi: dollarAbi, functionName: "transfer", args: [b.address, DRIP] });
+    const landed = await sendAndWait(faucet, { to: DOLLAR, data });
+    return json({ ...landed, amount: 25 });
   } catch (e) {
     return json({ error: revertReason(e) }, 502);
   }

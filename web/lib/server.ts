@@ -12,7 +12,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { tillAbi } from "./abi";
 import { RPC_URL, TILL, monadTestnet, publicClient } from "./chain";
 
-/** The relayer pays gas for every signed request; the faucet hands out test USDC. Keys live only in env vars. */
+/** The relayer pays gas for every signed request; the faucet hands out test AUSD. Keys live only in env vars. */
 export function signer(kind: "keeper" | "faucet") {
   const key = (kind === "keeper" ? process.env.KEEPER_KEY : process.env.FAUCET_KEY) as Hex | undefined;
   if (!key) throw new Error(`${kind === "keeper" ? "Relayer" : "Faucet"} is not configured on this deployment.`);

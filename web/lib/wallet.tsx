@@ -1,6 +1,6 @@
 "use client";
 
-import { PrivyProvider, usePrivy, useWallets } from "@privy-io/react-auth";
+import { PrivyProvider, useLoginWithPasskey, usePrivy, useSignupWithPasskey, useWallets } from "@privy-io/react-auth";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createWalletClient, custom, type Address, type Hex, type TypedDataDefinition } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
@@ -18,6 +18,9 @@ export type Wallet = {
   label: string;
   privyEnabled: boolean;
   signIn: () => void;
+  /** Passkey onboarding (Privy): create an account with a device passkey, or sign back in with it. */
+  passkeySignUp?: () => Promise<void>;
+  passkeySignIn?: () => Promise<void>;
   usePractice: () => void;
   signOut: () => void;
   signTypedData: (data: TypedDataDefinition) => Promise<Hex>;
@@ -30,7 +33,7 @@ const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
 const SIGNED_OUT = "till.practice.signedOut";
 
-/** The practice key stays in this browser after signing out (so its test USDC isn't lost); a flag hides it. */
+/** The practice key stays in this browser after signing out (so its test AUSD isn't lost); a flag hides it. */
 function readPractice(includeSignedOut = false): Hex | null {
   try {
     if (!includeSignedOut && localStorage.getItem(SIGNED_OUT) === "1") return null;
@@ -95,8 +98,10 @@ function WithPrivy({ children }: { children: ReactNode }) {
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
   const practice = usePracticeWallet();
+  const { signupWithPasskey } = useSignupWithPasskey();
+  const { loginWithPasskey } = useLoginWithPasskey();
   const embedded = wallets.find((w) => w.walletClientType === "privy");
-  const email = user?.email?.address ?? user?.google?.email;
+  const email = user?.email?.address ?? user?.google?.email ?? (user?.linkedAccounts.some((a) => a.type === "passkey") ? "Passkey account" : undefined);
 
   const value = useMemo<Wallet>(() => {
     if (authenticated && embedded) {
@@ -113,6 +118,8 @@ function WithPrivy({ children }: { children: ReactNode }) {
         label: email ?? "Signed in",
         privyEnabled: true,
         signIn: login,
+        passkeySignUp: () => signupWithPasskey(),
+        passkeySignIn: () => loginWithPasskey(),
         usePractice: practice.create,
         signOut: () => {
           practice.forget();
@@ -129,6 +136,8 @@ function WithPrivy({ children }: { children: ReactNode }) {
       label: "Practice wallet",
       privyEnabled: true,
       signIn: login,
+      passkeySignUp: () => signupWithPasskey(),
+      passkeySignIn: () => loginWithPasskey(),
       usePractice: practice.create,
       signOut: practice.forget,
       signTypedData: async (data) => {
@@ -140,7 +149,7 @@ function WithPrivy({ children }: { children: ReactNode }) {
         return practice.account.signMessage({ message: { raw } });
       },
     };
-  }, [authenticated, embedded, email, login, logout, practice, ready]);
+  }, [authenticated, embedded, email, login, logout, practice, ready, signupWithPasskey, loginWithPasskey]);
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 }
@@ -151,7 +160,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     <PrivyProvider
       appId={PRIVY_APP_ID}
       config={{
-        loginMethods: ["email"],
+        loginMethods: ["passkey", "email"],
         appearance: { theme: "light", accentColor: "#17332B", landingHeader: "Sign in to Till", showWalletLoginFirst: false },
         embeddedWallets: { ethereum: { createOnLogin: "all-users" }, showWalletUIs: false },
         defaultChain: monadTestnet,

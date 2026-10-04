@@ -14,20 +14,20 @@ import { privateKeyToAccount } from "viem/accounts";
 const RPC = process.env.RPC_URL || "https://testnet-rpc.monad.xyz";
 const TILL = process.env.TILL;
 const FORWARDER = process.env.FORWARDER;
-const USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
+const DOLLAR = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC"; // Agora AUSD on Monad testnet
+const AGORA_FAUCET = "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C";
 const keys = JSON.parse(fs.readFileSync(process.env.KEYS || "keys/wallets.json", "utf8"));
 const TICK_MS = Number(process.env.TICK_MS || 4000);
 const SETTLE_EVERY_MS = Number(process.env.SETTLE_EVERY_MS || 600_000);
 // When run from cron each minute, exit before the next run starts (cron + flock restart it).
 const RUN_FOR_MS = Number(process.env.RUN_FOR_MS || 0);
-// Testnet money is scarce, so the seeded tabs run lean: small budgets that are topped up from what
-// the freelancers pass back, short sessions, and a settle every ten minutes.
+// MON is the scarce resource on testnet, so the seeded tabs run lean on transactions: large budgets,
+// short sessions, and a settle every ten minutes.
 const usd = (n) => BigInt(Math.round(n * 1e6));
-const BUDGET = usd(Number(process.env.BUDGET || 6));
-const TOPUP = usd(Number(process.env.TOPUP || 5));
-const RECYCLE_ABOVE = usd(Number(process.env.RECYCLE_ABOVE || 4));
-const FUND = usd(Number(process.env.FUND || 6));
-const FAUCET_RESERVE = usd(Number(process.env.FAUCET_RESERVE || 10));
+// AUSD comes from Agora's on-chain faucet, so studios fund themselves and budgets can be realistic.
+const BUDGET = usd(Number(process.env.BUDGET || 40));
+const TOPUP = usd(Number(process.env.TOPUP || 40));
+const RECYCLE_ABOVE = usd(Number(process.env.RECYCLE_ABOVE || 1_000_000));
 const WORK_MIN = Number(process.env.WORK_MIN || 24);
 const STARTED = Date.now();
 
@@ -52,7 +52,7 @@ const fwdAbi = parseAbi([
   "function nonces(address) view returns (uint256)",
   "function execute((address from,address to,uint256 value,uint256 gas,uint48 deadline,bytes data,bytes signature) request) payable",
 ]);
-const usdcAbi = parseAbi([
+const dollarAbi = parseAbi([
   "function balanceOf(address) view returns (uint256)",
   "function nonces(address) view returns (uint256)",
   "function transfer(address,uint256) returns (bool)",
@@ -120,10 +120,10 @@ async function forward(k, fn, args) {
 
 async function permit(k, value) {
   const account = acct(k);
-  const nonce = await pub.readContract({ address: USDC, abi: usdcAbi, functionName: "nonces", args: [account.address] });
+  const nonce = await pub.readContract({ address: DOLLAR, abi: dollarAbi, functionName: "nonces", args: [account.address] });
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800);
   const sig = await account.signTypedData({
-    domain: { name: "USDC", version: "2", chainId: chain.id, verifyingContract: USDC },
+    domain: { name: "Agora Dollar", version: "1", chainId: chain.id, verifyingContract: DOLLAR },
     types: { Permit: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }, { name: "value", type: "uint256" }, { name: "nonce", type: "uint256" }, { name: "deadline", type: "uint256" }] },
     primaryType: "Permit",
     message: { owner: account.address, spender: TILL, value, nonce, deadline },
@@ -139,17 +139,17 @@ async function recycle(fromKey, toKey, value) {
   const validBefore = BigInt(Math.floor(Date.now() / 1000) + 1800);
   const to = acct(toKey).address;
   const sig = await from.signTypedData({
-    domain: { name: "USDC", version: "2", chainId: chain.id, verifyingContract: USDC },
+    domain: { name: "Agora Dollar", version: "1", chainId: chain.id, verifyingContract: DOLLAR },
     types: { TransferWithAuthorization: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" }] },
     primaryType: "TransferWithAuthorization",
     message: { from: from.address, to, value, validAfter: 0n, validBefore, nonce },
   });
   const { v, r, s } = hexToSignature(sig);
-  const data = encodeFunctionData({ abi: usdcAbi, functionName: "transferWithAuthorization", args: [from.address, to, value, 0n, validBefore, nonce, Number(v), r, s] });
-  return sendFromKeeper(USDC, data);
+  const data = encodeFunctionData({ abi: dollarAbi, functionName: "transferWithAuthorization", args: [from.address, to, value, 0n, validBefore, nonce, Number(v), r, s] });
+  return sendFromKeeper(DOLLAR, data);
 }
 
-const usdcOf = (a) => pub.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [a] });
+const usdcOf = (a) => pub.readContract({ address: DOLLAR, abi: dollarAbi, functionName: "balanceOf", args: [a] });
 
 /**
  * Is this freelancer in a work session? Local 07:00 to 22:00, WORK_MIN minutes in each hour, with
@@ -171,16 +171,17 @@ async function ensureProfiles() {
   }
 }
 
+/** Studios top themselves up from Agora's testnet faucet (10,000 AUSD a call); the faucet wallet pays the gas. */
 async function ensureClientFunds() {
   for (const c of CLIENTS) {
     const bal = await usdcOf(acct(c.key).address);
-    if (bal >= BUDGET) continue;
-    const pool = await usdcOf(faucet.account.address);
-    if (pool < FUND + FAUCET_RESERVE) continue;
-    const hash = await faucet.writeContract({ address: USDC, abi: usdcAbi, functionName: "transfer", args: [acct(c.key).address, FUND] });
+    if (bal >= BUDGET * 2n) continue;
+    const data = encodeFunctionData({ abi: parseAbi(["function requestFunds(address recipient)"]), functionName: "requestFunds", args: [acct(c.key).address] });
+    const est = await pub.estimateGas({ account: faucet.account.address, to: AGORA_FAUCET, data });
+    const hash = await faucet.sendTransaction({ to: AGORA_FAUCET, data, gas: (est * 115n) / 100n });
     const r = await pub.waitForTransactionReceipt({ hash });
     if (r.status !== "success") throw new Error(`funding ${c.name} reverted`);
-    log(`funded ${c.name} with ${Number(FUND) / 1e6} USDC`);
+    log(`${c.name} topped up from Agora's AUSD faucet`);
   }
 }
 
@@ -252,7 +253,7 @@ async function tick() {
     const earnedBal = await usdcOf(me);
     if (earnedBal > RECYCLE_ABOVE) {
       await recycle(f.key, f.client, earnedBal - 1_000_000n);
-      log(`${f.name} sent ${(Number(earnedBal - 1_000_000n) / 1e6).toFixed(2)} USDC back to ${client.name}`);
+      log(`${f.name} sent ${(Number(earnedBal - 1_000_000n) / 1e6).toFixed(2)} AUSD back to ${client.name}`);
     }
   }
 

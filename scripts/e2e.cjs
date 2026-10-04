@@ -33,9 +33,9 @@ async function shot(page, name) {
   await page.goto(`${base}/app`);
   await page.getByRole("button", { name: /practice wallet/i }).click();
   step("practice wallet created");
-  await page.getByRole("button", { name: "Get 10 test USDC" }).click();
-  await page.getByText(/10 test USDC arrived/).waitFor({ timeout: 60000 });
-  step("faucet: 10 test USDC arrived");
+  await page.getByRole("button", { name: "Get 25 test AUSD" }).click();
+  await page.getByText(/25 test AUSD arrived/).waitFor({ timeout: 60000 });
+  step("faucet: 25 test AUSD arrived");
 
   await page.getByLabel("Name").fill("Mara Lindqvist");
   await page.getByLabel("City").fill("Stockholm");
@@ -109,13 +109,13 @@ async function shot(page, name) {
     for (const [p, label] of [[fp, "freelancer"], [page, "client"]]) {
       await p.goto(`${base}/app`);
       await p.waitForTimeout(4000);
-      const raw = await p.locator("[data-usdc]").first().getAttribute("data-usdc").catch(() => "0");
+      const raw = await p.locator("[data-balance]").first().getAttribute("data-balance").catch(() => "0");
       const amount = Number(raw || 0) / 1e6;
       if (amount < 0.01) continue;
-      await p.getByRole("button", { name: "Send to another wallet" }).click();
+      await p.getByRole("button", { name: "Send AUSD" }).click();
       await p.getByLabel("Send to").fill(process.env.RETURN_TO);
-      await p.getByLabel("Amount in USDC").fill(String(Math.floor(amount * 100) / 100));
-      await p.getByRole("button", { name: "Send USDC" }).click();
+      await p.getByLabel("Amount in AUSD").fill(String(Math.floor(amount * 100) / 100));
+      await p.getByRole("button", { name: "Send AUSD" }).click();
       await expectOk(p, /Sent \$/);
       step(`${label} returned $${Math.floor(amount * 100) / 100} to the faucet`);
     }

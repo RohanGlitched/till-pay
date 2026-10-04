@@ -211,7 +211,7 @@ export default function TabPage() {
                   }}
                 >
                   <div className="field">
-                    <label htmlFor="topup">Add to the budget (USDC)</label>
+                    <label htmlFor="topup">Add to the budget (AUSD)</label>
                     <input id="topup" className="input" inputMode="decimal" value={topUp} onChange={(e) => setTopUp(e.target.value)} placeholder="5.00" />
                     <span className="hint">Wallet: {balance == null ? "…" : formatUsd(toUsd(balance))}</span>
                   </div>

@@ -39,7 +39,7 @@ export default async function OG() {
             Get paid every second you work.
           </div>
           <div style={{ fontSize: 28, color: "#4E6159", marginTop: 26, lineHeight: 1.35 }}>
-            Cross-border pay in USDC that lands on Monad while you work.
+            Cross-border pay in AUSD that lands on Monad while you work.
           </div>
         </div>
       </div>
