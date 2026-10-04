@@ -28,8 +28,12 @@ const WalletContext = createContext<Wallet | null>(null);
 const PRACTICE_KEY = "till.practice.v1";
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
-function readPractice(): Hex | null {
+const SIGNED_OUT = "till.practice.signedOut";
+
+/** The practice key stays in this browser after signing out (so its test USDC isn't lost); a flag hides it. */
+function readPractice(includeSignedOut = false): Hex | null {
   try {
+    if (!includeSignedOut && localStorage.getItem(SIGNED_OUT) === "1") return null;
     return (localStorage.getItem(PRACTICE_KEY) as Hex | null) ?? null;
   } catch {
     return null;
@@ -45,13 +49,17 @@ function usePracticeWallet() {
   }, []);
   const account = useMemo(() => (key ? privateKeyToAccount(key) : null), [key]);
   const create = useCallback(() => {
-    const k = readPractice() ?? generatePrivateKey();
+    const k = readPractice(true) ?? generatePrivateKey();
     try {
       localStorage.setItem(PRACTICE_KEY, k);
+      localStorage.removeItem(SIGNED_OUT);
     } catch {}
     setKey(k);
   }, []);
   const forget = useCallback(() => {
+    try {
+      localStorage.setItem(SIGNED_OUT, "1");
+    } catch {}
     setKey(null);
   }, []);
   return { account, loaded, create, forget };
@@ -106,7 +114,10 @@ function WithPrivy({ children }: { children: ReactNode }) {
         privyEnabled: true,
         signIn: login,
         usePractice: practice.create,
-        signOut: () => void logout(),
+        signOut: () => {
+          practice.forget();
+          void logout();
+        },
         signTypedData: async (data) => (await client()).signTypedData(data as never),
         signMessage: async (raw) => (await client()).signMessage({ message: { raw } }),
       };
