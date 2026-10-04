@@ -1,79 +1,195 @@
-# Till
+<p align="center">
+  <img src="docs/cover.png" alt="Till: get paid every second you work" width="880" />
+</p>
 
-**Get paid every second you work.** A client abroad opens a tab in AUSD, Agora's digital dollar, with an hourly rate and a budget. While the freelancer is clocked in, pay builds up every second on Monad and lands in their wallet as they work. Either side can stop the clock at any moment; closing the tab sends the unspent budget straight back.
+<p align="center">
+  <a href="https://till-pay.vercel.app"><img src="https://img.shields.io/badge/live-till--pay.vercel.app-C0266D?style=flat-square" alt="Live app" /></a>
+  <img src="https://img.shields.io/badge/Monad-testnet%2010143-6E54FF?style=flat-square" alt="Monad testnet" />
+  <img src="https://img.shields.io/badge/paid%20in-Agora%20AUSD-17332B?style=flat-square" alt="Paid in Agora AUSD" />
+  <img src="https://img.shields.io/badge/sign--up-Privy%20passkeys-2D4FA0?style=flat-square" alt="Privy passkeys" />
+  <a href="https://github.com/RohanGlitched/till-pay/actions/workflows/ci.yml"><img src="https://github.com/RohanGlitched/till-pay/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/license-MIT-4E6159?style=flat-square" alt="MIT" />
+</p>
 
-Live app: **https://till-pay.vercel.app** on Monad testnet, paid in Agora's AUSD
+<h3 align="center">Cross-border freelancers get paid every second they work.<br/>In Agora's AUSD, on Monad, with a passkey and no gas.</h3>
 
-| | |
-|---|---|
-| Till contract | [`0xeb6c2c519c9bcc4495364c34ac116c20098113d1`](https://testnet.monadvision.com/address/0xeb6c2c519c9bcc4495364c34ac116c20098113d1) |
-| Gasless forwarder (OpenZeppelin ERC2771Forwarder) | [`0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1`](https://testnet.monadvision.com/address/0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1) |
-| AUSD (Agora, Monad testnet) | [`0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC`](https://testnet.monadvision.com/address/0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC) |
+<p align="center"><b><a href="https://till-pay.vercel.app">Try it live</a></b> &nbsp;|&nbsp; <a href="VERIFY.md">Verify it on chain</a> &nbsp;|&nbsp; <a href="SECURITY.md">Security</a></p>
+
+---
+
+<p align="center">
+  <img src="docs/live-note.gif" alt="A real tab on Monad testnet: the banknote engraves itself and the amount ticks up every second" width="880" />
+  <br/><sub>A real tab on Monad testnet, recorded from the live site. Lucas in São Paulo is paid by a studio in Singapore; each band of the rosette is a stretch of work, and the amount rolls in his own currency.</sub>
+</p>
 
 ## The problem
 
-Freelancers outside the US and Europe wait for their money and pay to receive it. Sending money across borders costs 6.49% on average ([World Bank, Q1 2025](https://remittanceprices.worldbank.org/)). Hourly work on a marketplace reaches the freelancer about ten days after the week ends ([Upwork](https://www.upwork.com/resources/understanding-freelancer-payment-protection)). And if a client disappears, the freelancer chases an invoice for work already done.
+Freelancers outside the US and Europe wait for their money and pay to receive it.
+
+| | |
+|---|---|
+| **6.49%** | average cost of sending money across borders ([World Bank, Q1 2025](https://remittanceprices.worldbank.org/)) |
+| **~10 days** | before hourly marketplace pay is released after the work week ([Upwork](https://www.upwork.com/resources/understanding-freelancer-payment-protection)) |
+| **435M** | online gig workers worldwide ([World Bank, 2023](https://openknowledge.worldbank.org/entities/publication/ebc4a7e2-85c6-467b-8713-e2d77e954c6c)) |
+
+And if a client disappears, the freelancer chases an invoice for work already done.
 
 ## What Till does
 
-1. **The client opens a tab.** They set a rate and a budget in AUSD and send an invite link. The budget sits in the Till contract, which can only pay the freelancer or refund the client.
-2. **The freelancer clocks in.** Pay accrues every second on the clock. Either side can stop it; the client can pause pay or close the tab.
-3. **Pay lands as they work.** Earnings settle to the freelancer's wallet every few seconds while the tab is open on screen, and they can cash out at any moment. Nobody is ever owed more than the seconds since the last payout.
+A client opens a **tab**: an hourly rate and a budget in **AUSD**, Agora's digital dollar. The budget waits in the Till contract on Monad, which can only pay the freelancer for time on the clock or send it back to the client. While the freelancer is **clocked in**, pay builds up every second; while the tab is open on screen it lands in their wallet every few seconds, each payout settling in about a second. Either side can stop the clock at any moment, the client can pause pay or top up, and closing the tab returns every unspent cent in the same block.
 
-Every tab is drawn as a **banknote that prints itself**: a guilloche rosette in the ink of the freelancer's currency, with a new band engraved as the hours add up, the live amount rolling in their own currency, and the tab number and Monad block as its serial.
+**Nobody is ever owed more than a few seconds of work.**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor C as Client (Berlin)
+    participant R as Till relayer
+    participant T as Till contract (Monad)
+    actor F as Freelancer (Lagos)
+    C->>R: sign AUSD permit + "open tab" (EIP-712)
+    R->>T: openWithPermit via ERC-2771 forwarder
+    Note over T: budget held in AUSD
+    F->>R: sign "clock in"
+    R->>T: clockIn
+    loop every few seconds while the tab is open
+        R->>T: settle(id)
+        T-->>F: AUSD earned so far
+    end
+    C->>R: sign "close"
+    R->>T: close
+    T-->>F: the last seconds of pay
+    T-->>C: every unspent AUSD back
+```
+
+## Try it in one minute
+
+1. Open **[till-pay.vercel.app](https://till-pay.vercel.app)** and choose **Open a tab**.
+2. **Create an account with a passkey** (or continue with email, or use a practice wallet). Privy creates a wallet; there's no seed phrase and no gas.
+3. Click **Get 25 test AUSD**.
+4. Pick a demo freelancer, say $40 an hour and a $3 budget, and open the tab. They clock in by themselves within seconds; keep the page open and watch payouts land.
+5. Pause pay, top up, or close the tab and see the refund in the pay stub. To be the freelancer, choose **Someone I'll invite by link** and open the link on your phone.
+
+## Screens
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screens/home-hero.png" alt="Home: a live tab printing itself" /><br/><sub><b>Home.</b> The hero is a real tab running on Monad right now.</sub></td>
+    <td width="50%"><img src="docs/screens/home-world.png" alt="Who's on the clock right now" /><br/><sub><b>Who's on the clock.</b> Five freelancers in five cities, each with a 24-hour dial and live earnings in their own currency.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/tab-live.png" alt="A tab paying out live" /><br/><sub><b>A live tab.</b> Payouts every few seconds while the page is open, each with how long it took to land.</sub></td>
+    <td><img src="docs/screens/tab-timecard.png" alt="Time card and pay stub" /><br/><sub><b>Time card and pay stub.</b> Read straight from the chain; every line links to its transaction.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/open.png" alt="Open a tab" /><br/><sub><b>Open a tab.</b> The note on the right is what the freelancer will see, in rupees, before you sign.</sub></td>
+    <td><img src="docs/screens/app-freelancer.png" alt="Your tabs" /><br/><sub><b>Your tabs.</b> Your wallet prints as your own note, with a statement of what you earned and what's in your wallet.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/home-note.png" alt="Anatomy of a note" /><br/><sub><b>Every tab is a banknote.</b> Serial, rosette, monogram, value, ink, microprint and block, each meaning something.</sub></td>
+    <td><img src="docs/screens/home-monad.png" alt="Why Monad: live blocks and payouts" /><br/><sub><b>Why Monad.</b> Monad blocks arriving live, with the latest real Till payouts printed on a receipt.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/home-arrive.png" alt="When the money arrives" /><br/><sub><b>When the money arrives.</b> The same week of work paid by Till, a marketplace and a wire.</sub></td>
+    <td><img src="docs/screens/home-ink.png" alt="Every currency, its own ink" /><br/><sub><b>Every currency, its own ink.</b> Twelve currencies at live reference rates.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screens/signin.png" alt="Passkey sign-up" /><br/><sub><b>Passkey sign-up.</b> Privy embedded wallets, with email and practice wallets as fallbacks.</sub></td>
+    <td><img src="docs/screens/home-dark.png" alt="Dark mode" /><br/><sub><b>Dark mode.</b> Every ink has a night version.</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/screens/phone-home.png" alt="Home on a phone" width="250" />
+  &nbsp;
+  <img src="docs/screens/phone-tab.png" alt="A tab on a phone" width="250" />
+  &nbsp;
+  <img src="docs/screens/phone-ink.png" alt="Currencies on a phone" width="250" />
+  <br/><sub>Built phone-first for freelancers: home, a live tab and the currency sheet at 390 px.</sub>
+</p>
 
 ## Money: Agora's AUSD
 
-Tabs are funded and paid in [AUSD](https://www.agora.finance), Agora's dollar stablecoin, on Monad. AUSD supports EIP-2612 permits and EIP-3009 transfer authorisations, so opening a tab, topping up and sending AUSD to anyone are all one signature with no gas. The app's faucet hands judges 25 test AUSD and refills itself from Agora's testnet faucet.
+Tabs are funded and paid in [AUSD](https://www.agora.finance), Agora's dollar stablecoin on Monad. AUSD supports **EIP-2612 permits** and **EIP-3009 transfer authorisations**, so opening a tab, topping up and sending AUSD to anyone are each one signature with no gas. Your tabs has **Send AUSD to someone** for one-off payments; the receiver sees it a second later, in their own currency. The in-app faucet hands out 25 test AUSD and refills itself from Agora's testnet faucet.
 
 ## Why Monad
 
-- **Pay you can watch arrive.** Blocks every ~0.4 s with fast finality: a payout lands while the freelancer is still looking at the screen. The tab page settles every few seconds while it is open and shows how long each payout took.
-- **Built for parallel execution.** Pay accrues from timestamps and each tab keeps its own state. Clocking and settling never write shared storage, so thousands of tabs settle side by side; `settleMany` pays many tabs in one transaction.
-- **No gas for anyone.** Every action is an EIP-712 signature submitted by a relayer through an ERC-2771 forwarder; deposits use an AUSD permit (EIP-2612) and sends an AUSD transfer authorisation (EIP-3009). Neither side ever holds MON.
-- **Monad-aware engineering.** Monad charges the gas limit rather than gas used, so every transaction is sent with the chain's own estimate plus a margin. Public RPCs cap log queries at 100 blocks, so each tab links its changes block to block (`Activity(id, prevBlock)`) and the app reads a tab's full pay stub with one exact-block query per step, no indexer needed.
+- **Pay you can watch arrive.** Blocks every ~0.4 s with fast finality: a payout lands while the freelancer is still looking at the screen. The tab page settles every few seconds and shows how long each payout took (about 0.8 s from a browser in India).
+- **Built for parallel execution.** Pay accrues from timestamps and each tab keeps its own state. Clocking and settling never write shared storage, so independent tabs never contend; `settleMany` pays many tabs in one transaction.
+- **Monad-aware engineering.** Monad charges the gas *limit*, not gas used, so every transaction (relayer, faucet, bots) is sent with Monad's own gas estimate plus a small margin, never a blanket limit. Public RPCs cap `eth_getLogs` at 100 blocks, so each tab links its changes block to block (`Activity(id, prevBlock)`) and the app reads a full pay stub with one exact-block query per step, with no indexer.
+- **Live from the chain.** The site follows Monad's `newHeads` subscription; the landing page's numbers, world clocks and receipt all come from contract state and exact-block log reads.
 
-## Try it
+## Contracts (Monad testnet, chain 10143)
 
-1. Open https://till-pay.vercel.app and choose **Open a tab**. Create an account with a passkey (or use your email, or a practice wallet).
-2. Click **Get 25 test AUSD**, pick a demo freelancer (they clock in by themselves a few seconds later) and open a tab with a couple of dollars.
-3. Watch the note print and the payouts land. Pause pay, top up, close the tab and see the refund in the pay stub.
-4. To be the freelancer, choose **Someone I'll invite by link** and open the link in another browser.
+| | Address | |
+|---|---|---|
+| **Till** | [`0xeb6c2c519c9bcc4495364c34ac116c20098113d1`](https://testnet.monadvision.com/address/0xeb6c2c519c9bcc4495364c34ac116c20098113d1) | Sourcify exact match |
+| Gasless forwarder (OpenZeppelin `ERC2771Forwarder`) | [`0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1`](https://testnet.monadvision.com/address/0xB0Af71Dfb11df900B2B1a63De0D156e7f035B4D1) | Sourcify exact match |
+| AUSD (Agora) | [`0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC`](https://testnet.monadvision.com/address/0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC) | [Agora's deployments](https://docs.agora.finance/developer/contract-deployments) |
 
-Seeded studios in Berlin, Austin and Singapore pay freelancers in Manila, Lagos, Pune, São Paulo and Nairobi around their local working hours, so there is always a live tab to look at.
+No owner, no admin key, no upgrade path, no fee switch: earned pay can only go to the freelancer and unspent budget only back to the client.
+
+## Proof
+
+| Claim | Proof |
+|---|---|
+| Pay accrues per second, only while clocked in | `test_paysBySecondAndRefundsTheRest`, `test_noPayWhileClockedOut` |
+| The client can pause pay at any moment | `test_clientHoldStopsTheClock` |
+| Pay never exceeds the budget | `test_budgetCapsPayAndTopUpRestartsTheShift` |
+| Invite links can't be stolen from the mempool | `test_inviteClaimCannotBeStolen` |
+| Paid + refunded always equals the budget | `testFuzz_moneyIsConserved` (1,000 runs) |
+| Fully gasless with an AUSD permit and the forwarder | `test_gaslessOpenWithPermitAndClockIn`, plus a fork test with Agora's real AUSD |
+| Every action works on Monad testnet | [VERIFY.md](VERIFY.md): 17 transactions, one per action, with fresh wallets |
+| The whole UI works on the live site | `scripts/e2e.cjs`: faucet, profile, open, payouts, pause, close, invite on a phone |
+
+```bash
+cd contracts
+forge test                                                   # 12 tests, fuzz at 1,000 runs
+forge test --match-contract Fork --fork-url monad_testnet    # Agora AUSD on a Monad fork
+```
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    subgraph Browser
+      UI[Next.js app<br/>live banknotes] -- EIP-712 signatures --> W[Privy embedded wallet<br/>passkey or email]
+    end
+    UI -- /api/relay --> RL[Relayer<br/>simulates, then submits]
+    UI -- /api/settle --> RL
+    UI -- /api/faucet --> FA[Faucet<br/>25 AUSD, refilled from Agora]
+    RL --> FW[ERC2771Forwarder]
+    FW --> TILL[Till contract]
+    TILL <--> AUSD[(Agora AUSD)]
+    BOTS[Demo studios and freelancers<br/>cron on a server] --> RL
+    UI -- newHeads, getLogs --> MON[(Monad testnet RPC)]
+```
+
 ```
 contracts/   Till.sol (Solidity 0.8.28, OpenZeppelin 5.4), Foundry tests, deploy script
-web/         Next.js 15 app: landing, your tabs, open, tab, join; API routes for the
-             relayer (/api/relay), cash-outs (/api/send), payouts (/api/settle),
-             test AUSD (/api/faucet, topped up from Agora's faucet), network stats (/api/live) and exchange rates (/api/fx)
-bots/        The seeded studios and freelancers, plus the keeper that settles running tabs
-scripts/     ABI export, screenshots, end-to-end UI test
+web/         Next.js 15 app and API routes: relay, send, settle, faucet, live stats, exchange rates
+bots/        Seeded studios (Berlin, Austin, Singapore) and freelancers (Manila, Lagos, Pune,
+             São Paulo, Nairobi) on their local working hours, the keeper, and the proof run
+scripts/     ABI export, end-to-end UI test, screenshots
 ```
 
 ## Run it
 
 ```bash
-# contracts
-cd contracts && forge test                                   # 12 tests incl. 1,000-run fuzz
-forge test --match-contract Fork --fork-url monad_testnet    # rehearsal with Agora's real AUSD
-
-# web
+cd contracts && forge test
 cd web && npm install && npm run dev
 ```
 
-Environment for the web app: `NEXT_PUBLIC_TILL_ADDRESS`, `NEXT_PUBLIC_FORWARDER_ADDRESS`, `NEXT_PUBLIC_PRIVY_APP_ID` (optional; without it the app offers practice wallets), and server-only `KEEPER_KEY` and `FAUCET_KEY`.
+Web environment: `NEXT_PUBLIC_TILL_ADDRESS`, `NEXT_PUBLIC_FORWARDER_ADDRESS`, `NEXT_PUBLIC_PRIVY_APP_ID` (without it the app offers practice wallets), and server-only `KEEPER_KEY` and `FAUCET_KEY`.
 
-## Proof
+## Roadmap
 
-See [VERIFY.md](VERIFY.md) for deployed addresses, transactions for every action and how to reproduce them, and [SECURITY.md](SECURITY.md) for who can move money and how each attack is stopped.
+1. **Mainnet** on AUSD with the same contract, audited.
+2. **Local cash-out partners**: pesos, naira, rupees and shillings straight to bank accounts and mobile money.
+3. **Time-tracker plug-in**: any tool that knows you're working can clock you in and out.
 
 ## Built during Monad Metropolis
 
-All code in this repository was written during the hackathon (from October 2026); no earlier project code is reused.
+All code in this repository was written during the hackathon (October 2026); no earlier project code is reused.
 
-## Licence
-
-MIT
+MIT licence.

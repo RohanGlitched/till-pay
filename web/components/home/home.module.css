@@ -207,19 +207,22 @@ a.cityLink:hover {
 .specimenFace {
   position: absolute;
   inset: 0;
-  padding: 0 7cqw 0 47%;
+  padding: 0 5cqw 0 45%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 1cqw;
 }
 .specimenName {
-  font-size: clamp(11px, 3.6cqw, 14px);
+  font-size: clamp(10px, 3.6cqw, 14px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 600;
   color: var(--ink-c);
 }
 .specimenValue {
-  font-size: clamp(15px, 7.4cqw, 30px);
+  font-size: clamp(11px, 7.4cqw, 30px);
   font-weight: 550;
   color: var(--ink);
   line-height: 1.05;
