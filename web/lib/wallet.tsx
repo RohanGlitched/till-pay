@@ -151,7 +151,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     <PrivyProvider
       appId={PRIVY_APP_ID}
       config={{
-        loginMethods: ["email", "google"],
+        loginMethods: ["email"],
         appearance: { theme: "light", accentColor: "#17332B", landingHeader: "Sign in to Till", showWalletLoginFirst: false },
         embeddedWallets: { ethereum: { createOnLogin: "all-users" }, showWalletUIs: false },
         defaultChain: monadTestnet,
