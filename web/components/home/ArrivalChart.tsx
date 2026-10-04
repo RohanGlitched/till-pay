@@ -10,7 +10,7 @@ import styles from "./home.module.css";
  */
 const W = 1000;
 const H = 360;
-const PAD = { l: 64, r: 24, t: 28, b: 44 };
+const PAD = { l: 92, r: 46, t: 52, b: 48 };
 const DAYS = 21;
 const TOTAL = 1200;
 const x = (day: number) => PAD.l + (day / DAYS) * (W - PAD.l - PAD.r);
@@ -62,7 +62,7 @@ export function ArrivalChart() {
         <path d={step(WIRE_DAY, WIRE_AMOUNT)} fill="none" stroke="var(--ink-soft)" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" />
         <path d={step(MARKET_DAY, TOTAL)} fill="none" stroke="var(--ink)" strokeWidth="2" strokeDasharray="8 6" />
         <path d={tillPath()} fill="none" stroke="var(--serial)" strokeWidth="3" strokeLinejoin="round" />
-        <text x={x(5.3)} y={y(TOTAL) - 12} className={styles.lineLabel} fill="var(--serial)">
+        <text x={x(5.3)} y={y(TOTAL) - 14} className={styles.lineLabel} fill="var(--serial)">
           Till: every second, as it&apos;s earned
         </text>
         <text x={x(MARKET_DAY) - 8} y={y(TOTAL / 2)} textAnchor="end" className={styles.lineLabel} fill="var(--ink)">
