@@ -179,6 +179,8 @@ export function useHistory(id: bigint | null, lastBlock: bigint | undefined, max
         fresh.push(...inBlock.reverse());
         block = prev;
         steps++;
+        // Show the stub as it is read, newest first, rather than after the whole walk.
+        if (!cancelled && (steps <= 3 || steps % 4 === 0)) setLines([...fresh, ...seen.current.lines]);
       }
       if (cancelled) return;
       const merged = [...fresh, ...seen.current.lines].slice(0, 60);

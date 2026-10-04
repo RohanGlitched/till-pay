@@ -19,6 +19,7 @@ export type NoteProps = {
   status: string; // one plain line, e.g. "On the clock for 41 min"
   serialLine?: string; // e.g. "block 67,912,113, paid 2 seconds ago"
   engrave?: boolean; // engrave the lines in once on first show
+  lines?: { main: React.ReactNode; extra?: React.ReactNode; sub?: React.ReactNode }; // replaces the "Paid to / by" lines
 };
 
 const W = 1100;
@@ -155,14 +156,18 @@ export function Note(p: NoteProps) {
               <span className={styles.symbol}>—</span>
             )}
           </span>
-          <span className={styles.usd}>
-            {formatUsd(p.usd, 4)} in USDC
-          </span>
+          <span className={styles.usd}>{p.lines?.sub ?? `${formatUsd(p.usd, 4)} in USDC`}</span>
           <span className={styles.who}>
-            Paid to <b>{p.payee.name}</b>, {p.payee.place}
+            {p.lines ? (
+              p.lines.main
+            ) : (
+              <>
+                Paid to <b>{p.payee.name}</b>, {p.payee.place}
+              </>
+            )}
           </span>
           <span className={`${styles.who} ${styles.extra}`}>
-            by {p.payer.name}, {p.payer.place}, at {formatUsd(p.rateUsd)} an hour
+            {p.lines ? p.lines.extra : `by ${p.payer.name}, ${p.payer.place}, at ${formatUsd(p.rateUsd)} an hour`}
           </span>
         </div>
         <div className={styles.foot}>

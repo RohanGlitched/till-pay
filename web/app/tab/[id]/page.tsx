@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { InviteBox } from "@/components/InviteBox";
 import { TabNote, personOf } from "@/components/TabNote";
+import { TimeCard } from "@/components/TimeCard";
 import { ErrorLine, LandedLine, busyLabel, useAction } from "@/components/ui";
 import { explorerTx } from "@/lib/chain";
 import { useHistory, useTabs, useUsdcBalance, type StubLine } from "@/lib/hooks";
@@ -29,7 +30,8 @@ export default function TabPage() {
   const now = useChainNow();
   const { rates } = useLive();
   const act = useAction();
-  const { lines } = useHistory(id, view?.tab.lastBlock);
+  const { lines, more } = useHistory(id, view?.tab.lastBlock, 30);
+  const [copied, setCopied] = useState(false);
   const [payouts, setPayouts] = useState<(Landed & { amount: number })[]>([]);
   const [topUp, setTopUp] = useState("");
   const [showTopUp, setShowTopUp] = useState(false);
@@ -104,6 +106,21 @@ export default function TabPage() {
     <main className={`wrap ${styles.page}`}>
       <div className={styles.noteWrap}>
         <TabNote view={view!} profiles={profiles} lastPaidAt={lastPaid?.time} engrave />
+        <div className={styles.noteBar}>
+          <span className="soft">
+            Tab <span className="serial">№ {view!.id.toString().padStart(4, "0")}</span>
+            {lines?.find((l) => l.kind === "opened")?.time ? `, opened ${new Date(lines.find((l) => l.kind === "opened")!.time * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}` : ""}
+          </span>
+          <button
+            className={styles.copy}
+            onClick={() => navigator.clipboard?.writeText(window.location.href).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            })}
+          >
+            {copied ? "Link copied" : "Copy link to this tab"}
+          </button>
+        </div>
       </div>
 
       <div className={styles.grid}>
@@ -277,6 +294,17 @@ export default function TabPage() {
           </dl>
         </section>
       </div>
+
+      {lines && lines.length > 1 && (
+        <section className={styles.stub}>
+          <h2>Time card</h2>
+          <p className="soft">
+            {more ? "The most recent stretch of this tab. " : ""}Red is time on the clock, hatched is pay paused, and the line is money that has
+            reached the freelancer.
+          </p>
+          <TimeCard lines={lines} now={now} earnedUsd={toUsd(earned)} running={state === "working"} />
+        </section>
+      )}
 
       <section className={styles.stub}>
         <h2>Pay stub</h2>

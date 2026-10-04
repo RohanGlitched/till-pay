@@ -1,3 +1,4 @@
+import { decodeEventLog } from "viem";
 import { tillAbi } from "@/lib/abi";
 import { TILL, publicClient } from "@/lib/chain";
 import { json } from "@/lib/server";
@@ -10,10 +11,11 @@ let cache: { at: number; body: unknown } | null = null;
 
 /**
  * Network-wide numbers for the landing page, read straight from contract state (no indexer):
- * how many tabs exist and run right now, what has been paid, and one running tab to show.
+ * how many tabs exist and run right now, what has been earned, every open tab, one running tab to
+ * feature, and the latest payouts (found by following each tab's Activity link to its last block).
  */
 export async function GET() {
-  if (cache && Date.now() - cache.at < 3000) return json(cache.body, 200, { "cache-control": "no-store" });
+  if (cache && Date.now() - cache.at < 4000) return json(cache.body, 200, { "cache-control": "no-store" });
   try {
     const count = (await publicClient.readContract({ address: TILL, abi: tillAbi, functionName: "tabCount" })) as bigint;
     const ids = Array.from({ length: Number(count) }, (_, i) => BigInt(i + 1));
@@ -26,9 +28,44 @@ export async function GET() {
       paid += v.tab.paid;
       earned += earnedAt(v.tab, now);
     }
+    const open = tabs.filter((v) => !v.tab.closed);
     // Feature the running tab that has been going longest, so the hero has a story behind it.
-    const featured = [...running].sort((a, b) => Number(a.tab.since - b.tab.since))[0] ?? tabs.filter((v) => !v.tab.closed).at(-1) ?? null;
-    const profiles = featured ? await readProfiles([featured.tab.payer, featured.tab.payee]) : {};
+    const featured = [...running].sort((a, b) => Number(a.tab.since - b.tab.since))[0] ?? open.at(-1) ?? null;
+
+    // Latest payouts: the most recently active tabs, one exact-block log query each.
+    const recentTabs = [...tabs].sort((a, b) => Number(b.tab.lastBlock - a.tab.lastBlock)).slice(0, 6);
+    const found = await Promise.all(
+      recentTabs.map(async (v) => {
+        const out: { id: string; payee: string; amount: string; block: number; time: number; hash: string }[] = [];
+        let b = v.tab.lastBlock;
+        for (let step = 0; step < 4 && b > 0n && out.length === 0; step++) {
+          const at = b;
+          const logs = await publicClient.getLogs({ address: TILL, fromBlock: at, toBlock: at }).catch(() => []);
+          let prev = 0n;
+          for (const log of logs) {
+            try {
+              const ev = decodeEventLog({ abi: tillAbi, data: log.data, topics: log.topics });
+              const a = ev.args as Record<string, unknown>;
+              if (a.id !== v.id) continue;
+              if (ev.eventName === "Activity") prev = a.prevBlock as bigint;
+              if (ev.eventName === "Settled")
+                out.push({ id: String(v.id), payee: String(a.payee), amount: String(a.amount), block: Number(at), time: 0, hash: log.transactionHash! });
+            } catch {}
+          }
+          b = prev;
+        }
+        await Promise.all(
+          out.map(async (o) => {
+            const blk = await publicClient.getBlock({ blockNumber: BigInt(o.block) }).catch(() => null);
+            o.time = Number(blk?.timestamp ?? 0);
+          }),
+        );
+        return out;
+      }),
+    );
+    const recent = found.flat().sort((a, b) => b.block - a.block).slice(0, 6);
+
+    const profiles = await readProfiles(open.flatMap((v) => [v.tab.payer, v.tab.payee]).concat(recent.map((r) => r.payee as `0x${string}`)));
     const body = {
       tabs: tabs.length,
       running: running.length,
@@ -37,6 +74,8 @@ export async function GET() {
       block: Number(block.number),
       blockTime: now,
       featured,
+      open,
+      recent,
       profiles,
     };
     cache = { at: Date.now(), body };

@@ -9,8 +9,8 @@ import { Note } from "@/components/Note";
 import { personOf } from "@/components/TabNote";
 import { ErrorLine, SignInPanel, busyLabel, useAction } from "@/components/ui";
 import { tillAbi } from "@/lib/abi";
-import { TILL, publicClient } from "@/lib/chain";
-import { useProfile, useTabs } from "@/lib/hooks";
+import { TILL, explorerAddress, explorerTx, publicClient } from "@/lib/chain";
+import { useHistory, useProfile, useTabs } from "@/lib/hooks";
 import { useLive } from "@/lib/live";
 import { CURRENCIES, currency, formatDuration, formatUsd, toUsd } from "@/lib/money";
 import { relay } from "@/lib/relay";
@@ -51,6 +51,8 @@ export default function Join() {
 
   const view = views?.[0];
   const t = view?.tab;
+  const { lines } = useHistory(id, t?.lastBlock, 4);
+  const openedTx = lines?.find((l) => l.kind === "opened");
   if (!id) return <Shell>That isn&apos;t an invite link.</Shell>;
   if (!views) return <Shell busy />;
   if (!t || isZero(t.payer)) return <Shell>This tab doesn&apos;t exist. Check the link with the person who sent it.</Shell>;
@@ -96,6 +98,29 @@ export default function Join() {
             {formatUsd(toUsd(t.budget))} is already waiting in the Till contract on Monad, enough for {hoursCovered} of work. Clock in when you
             start and your pay builds up every second. Cash out whenever you like.
           </p>
+          <div className={styles.proof}>
+            <p>
+              <b>The money is already there.</b> {formatUsd(toUsd(t.budget))} sits in the{" "}
+              <a href={explorerAddress(TILL)} target="_blank" rel="noreferrer">
+                Till contract
+              </a>{" "}
+              on Monad, and the contract can only pay it to you for time on the clock or return it to {payer.name}.
+              {openedTx && (
+                <>
+                  {" "}
+                  <a className="serial" href={explorerTx(openedTx.hash)} target="_blank" rel="noreferrer">
+                    See the deposit, block {openedTx.block.toLocaleString("en-US")}
+                  </a>
+                  .
+                </>
+              )}
+            </p>
+            <ul>
+              <li>Clock in when you start; pay builds up every second.</li>
+              <li>It reaches your wallet every few seconds while the tab is open, and you can cash out any time.</li>
+              <li>No gas, no wallet app, no bank details.</li>
+            </ul>
+          </div>
           {isPayer ? (
             <p className="notice">This is your own tab. Send the link to the freelancer and they join from their browser.</p>
           ) : !wallet.address ? (

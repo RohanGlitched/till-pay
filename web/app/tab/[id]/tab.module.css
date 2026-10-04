@@ -145,3 +145,24 @@
     flex: 1 1 auto;
   }
 }
+
+.noteBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 14px;
+}
+.copy {
+  background: none;
+  border: 0;
+  padding: 8px 2px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--intaglio);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

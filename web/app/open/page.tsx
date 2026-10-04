@@ -13,7 +13,7 @@ import { useProfile, useUsdcBalance } from "@/lib/hooks";
 import { inviteLink, saveInvite } from "@/lib/invite";
 import { InviteBox } from "@/components/InviteBox";
 import { useLive } from "@/lib/live";
-import { currency, formatDuration, formatUsd, toUnits, toUsd } from "@/lib/money";
+import { currency, formatDuration, formatMoney, formatUsd, toUnits, toUsd } from "@/lib/money";
 import { relay, requestTestUsdc, signPermit } from "@/lib/relay";
 import { useWallet } from "@/lib/wallet";
 import styles from "./open.module.css";
@@ -203,7 +203,13 @@ export default function OpenTab() {
                 <span aria-hidden>$</span>
                 <input id="rate" className="input" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} />
               </div>
-              <span className="hint">USDC per hour, paid by the second.</span>
+              <span className="hint">
+                {rateN > 0 && who === "demo" && rates && previewCur.code !== "USD"
+                  ? `For ${pick.name.split(" ")[0]} that's ${formatMoney(rateN, previewCur, rates)} an hour, ${formatMoney(rateN / 3600, { ...previewCur, digits: 2 }, rates)} a second.`
+                  : rateN > 0
+                    ? `Paid by the second: ${formatUsd(rateN / 3600, 4)} a second.`
+                    : "USDC per hour, paid by the second."}
+              </span>
             </div>
             <div className="field">
               <label htmlFor="budget">Budget</label>
@@ -265,6 +271,24 @@ export default function OpenTab() {
             live={false}
             status={rateN > 0 && budgetN > 0 ? `Ready to clock in, up to ${covers}` : "Set a rate and a budget"}
           />
+          <ol className={styles.next}>
+            <li>
+              <span>
+              <b>The budget moves into the Till contract.</b> Not to us: the contract can only pay {who === "demo" ? pick.name.split(" ")[0] : "the freelancer"} for time on the clock or send it back to you.
+            </span>
+            </li>
+            <li>
+              <span>
+              <b>{who === "demo" ? `${pick.name.split(" ")[0]} clocks in.` : "They join and clock in."}</b>{" "}
+              {who === "demo" ? "Demo freelancers start by themselves within a few seconds." : who === "invite" ? "You'll get a link to send them; it works once." : "They clock in from their Till account."}
+            </span>
+            </li>
+            <li>
+              <span>
+              <b>Pay lands as they work.</b> Watch the note print. Pause pay or close the tab whenever you like; unspent budget comes straight back.
+            </span>
+            </li>
+          </ol>
         </aside>
       </div>
     </main>

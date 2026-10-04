@@ -50,3 +50,26 @@
     order: -1;
   }
 }
+
+.proof {
+  border-left: 3px solid var(--ok);
+  padding: 4px 0 4px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 15px;
+}
+.proof b {
+  font-weight: 650;
+}
+.proof a.serial {
+  text-decoration: none;
+}
+.proof ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

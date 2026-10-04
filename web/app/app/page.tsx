@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isAddress, type Address } from "viem";
 import { ProfileForm } from "@/components/ProfileForm";
 import { TabRow } from "@/components/TabRow";
+import { GettingStarted, Ledger, WalletNote } from "@/components/WalletPanel";
 import { ErrorLine, LandedLine, SignInPanel, busyLabel, useAction } from "@/components/ui";
 import { useMyTabIds, useProfile, useTabs, useUsdcBalance } from "@/lib/hooks";
 import { useLive, useChainNow } from "@/lib/live";
@@ -43,6 +44,14 @@ export default function YourTabs() {
 
   const usd = balance == null ? null : toUsd(balance);
   const lowBalance = balance != null && balance < 5_000_000n;
+  const hasStarted = (views?.length ?? 0) > 0 && !!mine?.name;
+  const getUsdc = () =>
+    faucet.run("10 test USDC arrived", async (sent) => {
+      sent();
+      const r = await requestTestUsdc(me);
+      refreshBalance();
+      return r;
+    });
 
   const clock = (v: TabView, what: "clockIn" | "clockOut") =>
     act.run(what === "clockIn" ? "Clocked in" : "Clocked out", async (sent) => {
@@ -78,49 +87,47 @@ export default function YourTabs() {
   return (
     <main className={`wrap ${styles.page}`}>
       <section className={styles.wallet}>
-        <div className={styles.balance}>
-          <span className={styles.label}>In your wallet</span>
-          <span className={`denom ${styles.big}`}>{usd == null ? <span className={`skeleton ${styles.skel}`} /> : formatUsd(usd)}</span>
-          {usd != null && myCur.code !== "USD" && rates && <span className="soft">about {formatMoney(usd, myCur, rates)}</span>}
-          <span className={styles.addr}>
-            {wallet.kind === "email" ? `${wallet.label}, ` : "Practice wallet, "}
-            <span className="serial">{me.slice(0, 10)}…{me.slice(-6)}</span>
-          </span>
+        <div className={styles.walletNote} data-usdc={balance?.toString() ?? ""}>
+          <WalletNote address={me} balance={balance} profile={mine} paidTabs={paid} />
         </div>
-        <div className={styles.walletActions}>
-          {lowBalance && (
-            <button
-              className="btn primary"
-              disabled={faucet.busy}
-              onClick={() =>
-                faucet.run("10 test USDC arrived", async (sent) => {
-                  sent();
-                  const r = await requestTestUsdc(me);
-                  refreshBalance();
-                  return r;
-                })
-              }
-            >
-              {faucet.busy ? "Sending test USDC…" : "Get 10 test USDC"}
-            </button>
-          )}
-          <Link href="/open" className={`btn ${lowBalance ? "" : "primary"}`}>
-            Open a tab
-          </Link>
-          {balance != null && balance > 0n && (
-            <button className="btn quiet" onClick={() => setSendOpen((o) => !o)} aria-expanded={sendOpen}>
-              Send to another wallet
-            </button>
-          )}
-        </div>
-        <div className={styles.walletNotes}>
-          <ErrorLine error={faucet.error} />
-          <LandedLine landed={faucet.landed} />
+        <div className={styles.walletSide}>
+          <h1 className={styles.h1}>{mine?.name ? `${mine.name.split(" ")[0]}'s tabs` : "Your tabs"}</h1>
+          <p className={styles.addr}>
+            {wallet.kind === "email" ? `Signed in as ${wallet.label}. ` : "Practice wallet in this browser. "}
+            {usd != null && myCur.code !== "USD" && rates ? `${formatUsd(usd)} is about ${formatMoney(usd, myCur, rates)}.` : ""}
+          </p>
+          <div className={styles.walletActions}>
+            <Link href="/open" className="btn primary">
+              Open a tab
+            </Link>
+            {balance != null && balance > 0n && (
+              <button className="btn" onClick={() => setSendOpen((o) => !o)} aria-expanded={sendOpen}>
+                Send to another wallet
+              </button>
+            )}
+            {lowBalance && hasStarted && (
+              <button className="btn quiet" disabled={faucet.busy} onClick={getUsdc}>
+                {faucet.busy ? "Sending test USDC…" : "Get 10 test USDC"}
+              </button>
+            )}
+          </div>
+          <GettingStarted
+            hasUsdc={(balance ?? 0n) > 0n || (views?.length ?? 0) > 0}
+            hasProfile={!!mine?.name}
+            hasTab={(views?.length ?? 0) > 0}
+            onFaucet={getUsdc}
+            faucetBusy={faucet.busy}
+          />
+          <Ledger paid={paid} paying={paying} cur={myCur} />
+          <div className={styles.walletNotes}>
+            <ErrorLine error={faucet.error} />
+            <LandedLine landed={faucet.landed} />
+          </div>
         </div>
         {sendOpen && <SendForm max={balance ?? 0n} onDone={refreshBalance} />}
       </section>
 
-      <section className={styles.profile}>
+      <section className={styles.profile} id="profile">
         <ProfileForm me={me} current={mine} onSaved={refresh} />
       </section>
 

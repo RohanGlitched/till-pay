@@ -1,0 +1,75 @@
+.ledger {
+  margin: 0;
+  border-top: 1.5px solid var(--ink);
+}
+.ledger div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--rule);
+  font-size: 15px;
+}
+.ledger dt {
+  color: var(--ink-soft);
+}
+.ledger dd {
+  margin: 0;
+  font-weight: 650;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.start {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1.5px solid var(--ink);
+}
+.start li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.tick {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--serial);
+  color: var(--serial);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13.5px;
+}
+.done .tick {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--paper);
+}
+.done b {
+  color: var(--ink-soft);
+}
+.stepText {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  color: var(--ink-soft);
+  min-width: 0;
+}
+.stepText b {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 650;
+}
+@media (max-width: 560px) {
+  .start li {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+  .stepAction {
+    grid-column: 2;
+  }
+}

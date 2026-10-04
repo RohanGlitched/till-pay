@@ -65,9 +65,15 @@ export async function readTabs(ids: bigint[]): Promise<TabView[]> {
 
 export async function readProfiles(addrs: Address[]): Promise<Record<string, Profile>> {
   const unique = [...new Set(addrs.filter((a) => a && a !== ZERO).map((a) => a.toLowerCase() as Address))];
-  const res = await Promise.all(
-    unique.map((a) => publicClient.readContract({ address: TILL, abi: tillAbi, functionName: "profileOf", args: [a] }).catch(() => null)),
-  );
+  // One multicall for every profile instead of a request each.
+  const res = unique.length
+    ? (
+        await publicClient.multicall({
+          contracts: unique.map((a) => ({ address: TILL, abi: tillAbi, functionName: "profileOf", args: [a] }) as const),
+          allowFailure: true,
+        })
+      ).map((r) => (r.status === "success" ? r.result : null))
+    : [];
   const map: Record<string, Profile> = {};
   unique.forEach((a, i) => {
     const p = res[i] as { name: string; place: string; currency: `0x${string}` } | null;

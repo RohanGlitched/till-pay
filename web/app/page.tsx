@@ -1,6 +1,15 @@
 import Link from "next/link";
-import { LiveHero, LiveStrip } from "@/components/LiveHero";
 import { Footer } from "@/components/Footer";
+import { LiveHero, LiveStrip } from "@/components/LiveHero";
+import { ArrivalChart } from "@/components/home/ArrivalChart";
+import { Divider, GrandRosette } from "@/components/home/Art";
+import { BlockTape } from "@/components/home/BlockTape";
+import { Faq } from "@/components/home/Faq";
+import { InkSheet } from "@/components/home/InkSheet";
+import { NoteAnatomy } from "@/components/home/NoteAnatomy";
+import { WorldClock } from "@/components/home/WorldClock";
+import home from "@/components/home/home.module.css";
+import { NetworkProvider } from "@/lib/network";
 import styles from "./page.module.css";
 
 const STEPS = [
@@ -47,7 +56,7 @@ const COMPARE = [
 
 export default function Home() {
   return (
-    <>
+    <NetworkProvider>
       <main>
         <section className={`wrap ${styles.top}`}>
           <h1 className={styles.h1}>Get paid every second you work.</h1>
@@ -75,7 +84,24 @@ export default function Home() {
           <LiveStrip />
         </section>
 
-        <section id="how" className={`wrap ${styles.section}`}>
+        <section className={`wrap ${styles.section}`} aria-labelledby="world">
+          <div className={styles.sectionHead}>
+            <h2 id="world" className={styles.h2}>
+              Who&apos;s on the clock right now
+            </h2>
+            <p className={styles.sub}>
+              Three studios pay five freelancers on Monad testnet, around their own working hours. Every figure below is a real tab, read from
+              the chain as you watch.
+            </p>
+          </div>
+          <WorldClock />
+        </section>
+
+        <div className={`wrap ${styles.gap}`}>
+          <Divider seed={1} />
+        </div>
+
+        <section id="how" className={`wrap ${styles.section} ${styles.tight}`}>
           <h2 className={styles.h2}>How a tab works</h2>
           <ol className={styles.steps}>
             {STEPS.map((s, i) => (
@@ -90,9 +116,31 @@ export default function Home() {
           </ol>
         </section>
 
-        <section className={`wrap ${styles.section}`}>
-          <h2 className={styles.h2}>What it replaces</h2>
-          <p className={styles.sub}>Most freelancers abroad are paid by wire or through a marketplace. Here is the same week of work three ways.</p>
+        <section className={`wrap ${styles.section}`} aria-labelledby="note">
+          <div className={styles.sectionHead}>
+            <h2 id="note" className={styles.h2}>
+              Every tab is a banknote
+            </h2>
+            <p className={styles.sub}>
+              It prints itself while the freelancer works. Each part of it tells you something; point at one to find it on the note.
+            </p>
+          </div>
+          <NoteAnatomy />
+        </section>
+
+        <div className={`wrap ${styles.gap}`}>
+          <Divider seed={2} />
+        </div>
+
+        <section className={`wrap ${styles.section} ${styles.tight}`} aria-labelledby="arrive">
+          <div className={styles.sectionHead}>
+            <h2 id="arrive" className={styles.h2}>
+              When the money arrives
+            </h2>
+            <p className={styles.sub}>The same week of work, paid three ways. Till pays while the work happens; the others pay once, days later.</p>
+          </div>
+          <ArrivalChart />
+          <h3 className={styles.h3}>Side by side</h3>
           <div className={styles.table} role="table" aria-label="Bank wire, marketplace and Till compared">
             <div className={`${styles.row} ${styles.head}`} role="row">
               <span role="columnheader" />
@@ -132,8 +180,23 @@ export default function Home() {
           </p>
         </section>
 
-        <section className={`wrap ${styles.section} ${styles.monad}`}>
+        <section className={`wrap ${styles.section}`} aria-labelledby="ink">
+          <div className={styles.sectionHead}>
+            <h2 id="ink" className={styles.h2}>
+              Every currency, its own ink
+            </h2>
+            <p className={styles.sub}>Freelancers see their pay in the money they think in. Twelve currencies so far, each printed in its own colour.</p>
+          </div>
+          <InkSheet />
+        </section>
+
+        <div className={`wrap ${styles.gap}`}>
+          <Divider seed={3} />
+        </div>
+
+        <section className={`wrap ${styles.section} ${styles.tight} ${styles.monad}`}>
           <h2 className={styles.h2}>Why this needs Monad</h2>
+          <BlockTape />
           <div className={styles.points}>
             <div>
               <h3>Pay you can watch arrive</h3>
@@ -158,8 +221,77 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <section className={`wrap ${styles.section}`} aria-labelledby="sides">
+          <h2 id="sides" className={styles.h2}>
+            Built for both sides of the tab
+          </h2>
+          <div className={home.sides}>
+            <div className={home.side}>
+              <h3>For freelancers</h3>
+              <ul>
+                <li>
+                  <b>No more waiting.</b> Pay lands while you work, and you can cash out at any second.
+                </li>
+                <li>
+                  <b>No chasing invoices.</b> The budget is already in the contract before you start.
+                </li>
+                <li>
+                  <b>Your money, your currency.</b> See every second of pay in rupees, pesos, naira or shillings.
+                </li>
+                <li>
+                  <b>Nothing to set up.</b> Sign in with your email; there&apos;s no wallet app and no gas.
+                </li>
+              </ul>
+            </div>
+            <div className={home.side}>
+              <h3>For clients</h3>
+              <ul>
+                <li>
+                  <b>Pay only for time worked.</b> The clock runs only while the freelancer is on it, and you can pause it at once.
+                </li>
+                <li>
+                  <b>Hire anywhere.</b> One link onboards a freelancer in any country, with no bank details to collect.
+                </li>
+                <li>
+                  <b>Unspent budget comes back.</b> Close the tab and every cent you didn&apos;t use returns in the same block.
+                </li>
+                <li>
+                  <b>A record you can check.</b> Every shift and payout is on Monad, with a pay stub to match.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section className={`wrap ${styles.section}`} aria-labelledby="faq">
+          <h2 id="faq" className={styles.h2}>
+            Questions people ask
+          </h2>
+          <Faq />
+        </section>
+
+        <section className={`wrap ${styles.closing}`} aria-labelledby="start">
+          <div className={styles.closingArt}>
+            <GrandRosette />
+          </div>
+          <div className={styles.closingText}>
+            <h2 id="start" className={styles.closingH}>
+              Your next hour could pay by the second.
+            </h2>
+            <p className={styles.lede}>Open a tab for someone you work with, or hire a demo freelancer and watch the note print. It takes a minute.</p>
+            <div className={styles.ctas}>
+              <Link href="/open" className="btn primary">
+                Open a tab
+              </Link>
+              <Link href="/app" className="btn">
+                See your tabs
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
       <Footer />
-    </>
+    </NetworkProvider>
   );
 }

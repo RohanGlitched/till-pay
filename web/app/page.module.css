@@ -136,7 +136,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 36px;
-  margin-top: 8px;
+  margin-top: 40px;
 }
 .points h3 {
   font-size: 19px;
@@ -183,5 +183,62 @@
   }
   .lede {
     font-size: 17px;
+  }
+}
+
+.sectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.h3 {
+  font-size: 19px;
+  margin-top: 36px;
+}
+.tight {
+  padding-top: 56px;
+}
+.gap {
+  padding-top: 84px;
+}
+.closing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: center;
+  padding-top: 110px;
+}
+.closingArt {
+  max-width: 520px;
+  width: 100%;
+  justify-self: center;
+}
+.closingText {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.closingH {
+  font-variation-settings: "wdth" 118;
+  font-size: clamp(34px, 4.6vw, 64px);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+@media (max-width: 900px) {
+  .closing {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding-top: 72px;
+  }
+  .closingArt {
+    max-width: 360px;
+  }
+  .gap {
+    padding-top: 56px;
+  }
+  .tight {
+    padding-top: 40px;
   }
 }

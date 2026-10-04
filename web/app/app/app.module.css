@@ -8,34 +8,28 @@
 }
 .wallet {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px 32px;
-  align-items: end;
-  padding-bottom: 26px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 24px 40px;
+  align-items: start;
+  padding-bottom: 32px;
   border-bottom: 1.5px solid var(--ink);
 }
-.balance {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.walletNote {
   min-width: 0;
 }
-.label {
-  font-weight: 600;
-  font-size: 15px;
+.walletSide {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
 }
-.big {
-  font-size: clamp(44px, 7vw, 76px);
-  font-weight: 500;
-  line-height: 1.02;
-}
-.skel {
-  display: inline-block;
-  width: 5.5ch;
-  height: 0.9em;
+.h1 {
+  font-variation-settings: "wdth" 112;
+  font-size: clamp(30px, 3.6vw, 44px);
+  letter-spacing: -0.02em;
 }
 .addr {
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--ink-soft);
   overflow-wrap: anywhere;
 }
@@ -43,7 +37,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: flex-end;
 }
 .walletNotes {
   grid-column: 1 / -1;
@@ -99,7 +92,6 @@
 @media (max-width: 720px) {
   .wallet {
     grid-template-columns: minmax(0, 1fr);
-    align-items: start;
   }
   .walletActions {
     justify-content: flex-start;

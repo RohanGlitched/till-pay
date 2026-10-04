@@ -45,7 +45,7 @@ export function ProfileForm({
     return (
       <p className={styles.summary}>
         Your notes print <b>{shown.name}</b>
-        {shown.place ? `, ${shown.place}` : ""}, in {currency(shown.currency).name.toLowerCase().replace(/^us /, "US ")}.{" "}
+        {shown.place ? `, ${shown.place}` : ""}, with amounts in {currency(shown.currency).name} ({currency(shown.currency).symbol}).{" "}
         <button className={styles.edit} onClick={() => setOpen(true)}>
           Edit
         </button>

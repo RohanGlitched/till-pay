@@ -109,8 +109,8 @@ async function shot(page, name) {
     for (const [p, label] of [[fp, "freelancer"], [page, "client"]]) {
       await p.goto(`${base}/app`);
       await p.waitForTimeout(4000);
-      const bal = await p.locator("main section .denom").first().innerText().catch(() => "$0");
-      const amount = Number(bal.replace(/[$,]/g, ""));
+      const raw = await p.locator("[data-usdc]").first().getAttribute("data-usdc").catch(() => "0");
+      const amount = Number(raw || 0) / 1e6;
       if (amount < 0.01) continue;
       await p.getByRole("button", { name: "Send to another wallet" }).click();
       await p.getByLabel("Send to").fill(process.env.RETURN_TO);

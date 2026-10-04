@@ -1,0 +1,28 @@
+.card {
+  margin: 0;
+  padding: 18px 18px 14px;
+  background: var(--note-paper);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.lab {
+  font-family: var(--font-archivo), sans-serif;
+  font-size: 13px;
+  fill: var(--ink-soft);
+}
+.val {
+  font-family: var(--font-archivo), sans-serif;
+  font-size: 14px;
+  font-weight: 650;
+  fill: var(--ink);
+}
+.cap {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  margin-top: 6px;
+}
